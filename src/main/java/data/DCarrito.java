@@ -25,15 +25,54 @@ public class DCarrito {
     public List<String[]> getCarritoActivo(int clienteId) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
         
-        // Primero, buscar el último carrito del cliente
+        // Primero, buscar un carrito activo que tenga productos
         String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
-                      "cl.nit, u.nombre, u.email " +
+                      "cl.nit, u.nombre, u.email, " +
+                      "COUNT(dc.id) as productos_count " +
                       "FROM carrito c " +
                       "INNER JOIN cliente cl ON c.cliente_id = cl.id " +
                       "INNER JOIN \"user\" u ON cl.user_id = u.id " +
-                      "WHERE c.cliente_id = ? " +
+                      "LEFT JOIN detalle_carrito dc ON c.id = dc.carrito_id " +
+                      "WHERE c.cliente_id = ? AND c.estado = 'activo' " +
+                      "GROUP BY c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+                      "cl.nit, u.nombre, u.email " +
+                      "HAVING COUNT(dc.id) > 0 " +
                       "ORDER BY c.created_at DESC " +
                       "LIMIT 1";
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
+            
+            ps.setInt(1, clienteId);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // Encontramos un carrito activo con productos
+                    carritos.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        String.valueOf(rs.getInt("cliente_id")),
+                        rs.getString("fecha"),
+                        String.valueOf(rs.getBigDecimal("total")),
+                        rs.getString("estado"),
+                        rs.getString("nit"),
+                        rs.getString("nombre"),
+                        rs.getString("email"),
+                        rs.getString("created_at"),
+                        rs.getString("updated_at")
+                    });
+                    return carritos;
+                }
+            }
+        }
+        
+        // Si no hay carrito activo con productos, buscar el último carrito del cliente
+        query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+                "cl.nit, u.nombre, u.email " +
+                "FROM carrito c " +
+                "INNER JOIN cliente cl ON c.cliente_id = cl.id " +
+                "INNER JOIN \"user\" u ON cl.user_id = u.id " +
+                "WHERE c.cliente_id = ? " +
+                "ORDER BY c.created_at DESC " +
+                "LIMIT 1";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             

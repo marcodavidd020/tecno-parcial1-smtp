@@ -33,6 +33,10 @@ public class Token {
     public static final int TIPOPAGO = 115;
     public static final int CLIENTE = 116;
     public static final int CARRITO = 117;
+    public static final int NOTAVENTA = 118;
+    public static final int PEDIDO = 119;
+    public static final int DIRECCION = 120;
+    public static final int COMPRAR = 121;
 
     // Constantes para las acciones generales
     public static final int ADD = 200;
@@ -153,6 +157,14 @@ public class Token {
                 return "cliente";
             case CARRITO:
                 return "carrito";
+            case NOTAVENTA:
+                return "notaventa";
+            case PEDIDO:
+                return "pedido";
+            case DIRECCION:
+                return "direccion";
+            case COMPRAR:
+                return "comprar";
             case ADD:
                 return "add";
             case DELETE:
@@ -227,6 +239,14 @@ public class Token {
                 return CLIENTE;
             case "carrito":
                 return CARRITO;
+            case "notaventa":
+                return NOTAVENTA;
+            case "pedido":
+                return PEDIDO;
+            case "direccion":
+                return DIRECCION;
+            case "comprar":
+                return COMPRAR;
             case "add":
                 return ADD;
             case "delete":

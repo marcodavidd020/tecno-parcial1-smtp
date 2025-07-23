@@ -54,6 +54,19 @@ public class NCarrito {
     }
     
     /**
+     * Cambia el estado del carrito (método simplificado que retorna boolean)
+     */
+    public boolean cambiarEstadoCarrito(int carritoId, String estado) {
+        try {
+            List<String[]> resultado = dCarrito.updateEstado(carritoId, estado);
+            return !resultado.isEmpty();
+        } catch (SQLException e) {
+            System.err.println("Error cambiando estado del carrito: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Elimina un carrito por ID
      */
     public boolean delete(int id) throws SQLException {

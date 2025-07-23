@@ -26,4 +26,8 @@ public interface ICasoUsoListener {
     void tipopago(ParamsAction event);
     void cliente(ParamsAction event);
     void carrito(ParamsAction event);
+    void notaVenta(ParamsAction event);
+    void pedido(ParamsAction event);
+    void direccion(ParamsAction event);
+    void comprar(ParamsAction event);
 }

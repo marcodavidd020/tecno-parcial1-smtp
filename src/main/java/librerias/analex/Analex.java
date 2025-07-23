@@ -105,6 +105,10 @@ public class Analex {
     private boolean isEmail(char c){        
         return c == 64 || c == '.' || c == '_' || c == '-';
     }
+    
+    private boolean isUrlChar(char c){        
+        return c == '.' || c == '_' || c == '-' || c == '@' || c == '?' || c == '=' || c == '&' || c == '%' || c == ':' || c == '/' || c == '#' || c == '~' || c == '!' || c == 'z';
+    }
 
     /**
      * Realiza el analisis del comando.
@@ -165,6 +169,10 @@ public class Analex {
                         ac = ac + c;
                         cinta.forward();
                         status = 34;
+                    }else if(isUrlChar(c) || c == ','){
+                        ac = ac + c;
+                        cinta.forward();
+                        status = 3;
                     }else if(isEndParams(c)){
                         status = 5;
                     }else{
@@ -193,7 +201,7 @@ public class Analex {
                     break;
 
                 case 3:
-                    if(isLetter(c) || isDigit(c) || isDate(c) || isEmail(c)){
+                    if(isLetter(c) || isDigit(c) || isDate(c) || isEmail(c) || isUrlChar(c)){
                         ac = ac + c;
                         cinta.forward();
                         status = 3;
@@ -207,7 +215,14 @@ public class Analex {
                         cinta.forward();
                         status = 3;
                     }else if(isComa(c)){
-                        status = 4;
+                        // Si estamos en una URL, continuar procesando sin separar
+                        if(ac.contains("http") || ac.contains("www") || ac.contains("google.com")){
+                            ac = ac + c;
+                            cinta.forward();
+                            status = 3;
+                        } else {
+                            status = 4;
+                        }
                     } else {
                         ac = "" + c;
                         status = 8;

@@ -20,6 +20,8 @@ import librerias.analex.Token;
 import negocio.*;
 import postgresConecction.EmailReceipt;
 import postgresConecction.EmailSend;
+import postgresConecction.SqlConnection;
+import postgresConecction.DBConnection;
 
 public class EmailApp implements ICasoUsoListener, IEmailListener {
 
@@ -46,6 +48,9 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     private NTipoPago nTipoPago;
     private NCliente nCliente;
     private NCarrito nCarrito;
+    private NNotaVenta nNotaVenta;
+    private NPedido nPedido;
+    private NDireccion nDireccion;
 
     public EmailApp() {
         this.emailReceipt = new EmailReceipt();
@@ -66,6 +71,10 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         this.nTipoPago = new NTipoPago();
         this.nCliente = new NCliente();
         this.nCarrito = new NCarrito();
+        this.nNotaVenta = new NNotaVenta();
+        this.nPedido = new NPedido();
+        this.nDireccion = new NDireccion();
+        this.nPago = new NPago();
     }
 
     public void start() {
@@ -225,17 +234,11 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     public void pago(ParamsAction event) {
         try {
             switch (event.getAction()) {
-                case Token.ADD:
-                    // nPago.save(event.getParams());
-                    List<String[]> pagoDataSaved = nPago.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Pago procesado correctamente");
-                    tableNotifySuccess(event.getSender(), "Pago procesado correctamente", DPago.HEADERS, (ArrayList<String[]>) pagoDataSaved, event.getCommand());
-                    break;
                 case Token.GET:
                     if (event.getParams() != null && !event.getParams().isEmpty()) {
                         // Si hay parámetros, se asume que es una solicitud de pago por ID
                         int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> pagoData = nPago.get(id);
+                        List<String[]> pagoData = nPago.getById(id);
                         if (!pagoData.isEmpty()) {
                             tableNotifySuccess(event.getSender(), "Detalles del Pago", DPago.HEADERS, (ArrayList<String[]>) pagoData, event.getCommand());
                         } else {
@@ -243,27 +246,48 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         }
                     } else {
                         // Si no hay parámetros, se asume que es una solicitud de todos los pagos
-                        tableNotifySuccess(event.getSender(), "Lista de Pagos", DPago.HEADERS, nPago.list(), event.getCommand());
+                        tableNotifySuccess(event.getSender(), "Lista de Pagos", DPago.HEADERS, (ArrayList<String[]>) nPago.getAll(), event.getCommand());
                     }
                     break;
                 case Token.MODIFY:
-                    List<String[]> pagoDataUpdated = nPago.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Pago actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Pago actualizado correctamente", DPago.HEADERS, (ArrayList<String[]>) pagoDataUpdated, event.getCommand());
+                    if (event.getParams() != null && event.getParams().size() >= 2) {
+                        int id = Integer.parseInt(event.getParams().get(0));
+                        String estado = event.getParams().get(1);
+                        List<String[]> pagoDataUpdated = nPago.updateEstado(id, estado);
+                        tableNotifySuccess(event.getSender(), "Pago actualizado correctamente", DPago.HEADERS, (ArrayList<String[]>) pagoDataUpdated, event.getCommand());
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: pago modify <id, estado>**");
+                    }
                     break;
                 case Token.DELETE:
-                    // nPago.delete(event.getParams());
-                    List<String[]> pagoDataDeleted = nPago.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Pago eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Pago eliminado correctamente", DPago.HEADERS, (ArrayList<String[]>) pagoDataDeleted, event.getCommand());
+                    if (event.getParams() != null && !event.getParams().isEmpty()) {
+                        int id = Integer.parseInt(event.getParams().get(0));
+                        boolean deleted = nPago.delete(id);
+                        if (deleted) {
+                            simpleNotifySuccess(event.getSender(), "Pago eliminado correctamente");
+                        } else {
+                            simpleNotify(event.getSender(), "Error", "No se pudo eliminar el pago.");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: pago delete <id>**");
+                    }
+                    break;
+                default:
+                    simpleNotify(event.getSender(), "Acción no válida", 
+                        "❌ **Acción no válida para pago**\n\n" +
+                        "📋 **Comandos disponibles:**\n" +
+                        "• pago get - Obtener todos los pagos\n" +
+                        "• pago get <id> - Obtener pago por ID\n" +
+                        "• pago modify <id, estado> - Actualizar estado\n" +
+                        "• pago delete <id> - Eliminar");
                     break;
             }
         } catch (SQLException ex) {
             handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
         } catch (IndexOutOfBoundsException ex) {
             handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -875,6 +899,29 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         data.add(new String[]{"Carrito", "carrito add &lt;producto_id, cantidad&gt;", "Agrega producto al carrito"});
         data.add(new String[]{"Carrito", "carrito modify &lt;detalle_id, cantidad&gt;", "Modifica cantidad de producto"});
         data.add(new String[]{"Carrito", "carrito delete &lt;detalle_id&gt;", "Elimina producto del carrito"});
+
+        // Sistema de Ventas
+        data.add(new String[]{"Nota de Venta", "notaventa get", "Obtiene mis notas de venta"});
+        data.add(new String[]{"Nota de Venta", "notaventa get &lt;id&gt;", "Obtiene nota de venta por ID"});
+        data.add(new String[]{"Nota de Venta", "notaventa add &lt;observaciones&gt; [pedido_id]", "Crea nota de venta desde carrito"});
+        data.add(new String[]{"Nota de Venta", "notaventa modify &lt;id, estado, observaciones&gt;", "Actualiza nota de venta"});
+        data.add(new String[]{"Nota de Venta", "notaventa delete &lt;id&gt;", "Elimina nota de venta"});
+
+        data.add(new String[]{"Pedido", "pedido get", "Obtiene todos los pedidos"});
+        data.add(new String[]{"Pedido", "pedido get &lt;id&gt;", "Obtiene pedido por ID"});
+        data.add(new String[]{"Pedido", "pedido add &lt;nombre_direccion, url_google_maps, referencia, total&gt;", "Crea pedido con dirección"});
+        data.add(new String[]{"Pedido", "pedido modify &lt;id, estado&gt;", "Actualiza estado del pedido"});
+        data.add(new String[]{"Pedido", "pedido delete &lt;id&gt;", "Elimina pedido"});
+
+        data.add(new String[]{"Dirección", "direccion get", "Obtiene todas las direcciones"});
+        data.add(new String[]{"Dirección", "direccion get &lt;id&gt;", "Obtiene dirección por ID"});
+        data.add(new String[]{"Dirección", "direccion get &lt;nombre&gt;", "Busca dirección por nombre"});
+        data.add(new String[]{"Dirección", "direccion add &lt;nombre, url_google_maps, referencia&gt;", "Crea dirección desde Google Maps"});
+        data.add(new String[]{"Dirección", "direccion modify &lt;id, nombre, url_google_maps, referencia&gt;", "Actualiza dirección"});
+        data.add(new String[]{"Dirección", "direccion delete &lt;id&gt;", "Elimina dirección"});
+
+        // Comando de Compra Completa
+        data.add(new String[]{"Compra", "comprar &lt;metodo_pago, url_google_maps&gt;", "Realiza compra completa desde carrito"});
 
                 System.out.println("=== ENVIANDO RESPUESTA HELP ===");
                 System.out.println("Filas de datos: " + data.size());
@@ -1592,6 +1639,654 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     }
 
     @Override
+    public void notaVenta(ParamsAction event) {
+        try {
+            System.out.println("=== PROCESANDO NOTA VENTA PARA USUARIO ===");
+            System.out.println("Usuario: " + event.getSender());
+            System.out.println("Action: " + event.getAction());
+            System.out.println("Params: " + event.getParams());
+            
+            switch (event.getAction()) {
+                case Token.GET:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        String param = event.getParams().get(0);
+                        
+                        // Intentar como ID numérico primero
+                        try {
+                            int id = Integer.parseInt(param);
+                            List<String[]> notaVentaData = nNotaVenta.getById(id);
+                            
+                            if (!notaVentaData.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Nombre", "Email", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "Nota de Venta encontrada", enhancedHeaders, (ArrayList<String[]>) notaVentaData, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Nota de Venta no encontrada", 
+                                    "❌ **No se encontró la nota de venta con ID: " + id + "**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        // Obtener todas las notas de venta del usuario
+                        List<String[]> notasVenta = nNotaVenta.getByClienteEmail(event.getSender());
+                        
+                        if (!notasVenta.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Nombre", "Email", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "Mis Notas de Venta", enhancedHeaders, (ArrayList<String[]>) notasVenta, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Sin notas de venta", 
+                                "📋 **No tienes notas de venta registradas**");
+                        }
+                    }
+                    break;
+                    
+                case Token.ADD:
+                    // Crear nota de venta desde carrito
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        String observaciones = event.getParams().get(0);
+                        Integer pedidoId = null;
+                        
+                        if (event.getParams().size() >= 2) {
+                            try {
+                                pedidoId = Integer.parseInt(event.getParams().get(1));
+                            } catch (NumberFormatException e) {
+                                // Si no es número, ignorar
+                            }
+                        }
+                        
+                        List<String[]> notaVenta = nNotaVenta.crearNotaVentaDesdeCarrito(event.getSender(), pedidoId, observaciones);
+                        
+                        if (!notaVenta.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "✅ Nota de Venta Creada", enhancedHeaders, (ArrayList<String[]>) notaVenta, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Error al crear nota de venta", 
+                                "❌ **No se pudo crear la nota de venta**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: notaventa add <observaciones> [pedido_id]**");
+                    }
+                    break;
+                    
+                case Token.MODIFY:
+                    if (event.getParams() != null && event.getParams().size() >= 3) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            String estado = event.getParams().get(1);
+                            String observaciones = event.getParams().get(2);
+                            
+                            List<String[]> notaVenta = nNotaVenta.update(id, estado, observaciones);
+                            
+                            if (!notaVenta.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "✅ Nota de Venta Actualizada", enhancedHeaders, (ArrayList<String[]>) notaVenta, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Error al actualizar", 
+                                    "❌ **No se pudo actualizar la nota de venta**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: notaventa modify <id, estado, observaciones>**");
+                    }
+                    break;
+                    
+                case Token.DELETE:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            
+                            boolean deleted = nNotaVenta.delete(id);
+                            
+                            if (deleted) {
+                                simpleNotifySuccess(event.getSender(), "✅ Nota de Venta eliminada exitosamente");
+                            } else {
+                                simpleNotify(event.getSender(), "Error al eliminar", 
+                                    "❌ **No se pudo eliminar la nota de venta**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: notaventa delete <id>**");
+                    }
+                    break;
+                    
+                default:
+                    simpleNotify(event.getSender(), "Acción no válida", 
+                        "❌ **Acción no válida para nota de venta**\n\n" +
+                        "📋 **Comandos disponibles:**\n" +
+                        "• notaventa get - Obtener mis notas de venta\n" +
+                        "• notaventa get <id> - Obtener nota de venta por ID\n" +
+                        "• notaventa add <observaciones> [pedido_id] - Crear desde carrito\n" +
+                        "• notaventa modify <id, estado, observaciones> - Actualizar\n" +
+                        "• notaventa delete <id> - Eliminar");
+                    break;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error SQL en notaVenta. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error de Base de Datos", 
+                "❌ **Error al procesar la solicitud: " + ex.getMessage() + "**");
+        } catch (Exception ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error inesperado en notaVenta. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error del Sistema", 
+                "❌ **Error inesperado: " + ex.getMessage() + "**");
+        }
+    }
+
+    @Override
+    public void pedido(ParamsAction event) {
+        try {
+            System.out.println("=== PROCESANDO PEDIDO PARA USUARIO ===");
+            System.out.println("Usuario: " + event.getSender());
+            System.out.println("Action: " + event.getAction());
+            System.out.println("Params: " + event.getParams());
+            
+            switch (event.getAction()) {
+                case Token.GET:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        String param = event.getParams().get(0);
+                        
+                        // Intentar como ID numérico primero
+                        try {
+                            int id = Integer.parseInt(param);
+                            List<String[]> pedidoData = nPedido.getById(id);
+                            
+                            if (!pedidoData.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Nombre Dirección", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "Pedido encontrado", enhancedHeaders, (ArrayList<String[]>) pedidoData, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Pedido no encontrado", 
+                                    "❌ **No se encontró el pedido con ID: " + id + "**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        // Obtener todos los pedidos
+                        List<String[]> pedidos = nPedido.getAll();
+                        
+                        if (!pedidos.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Nombre Dirección", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "Todos los Pedidos", enhancedHeaders, (ArrayList<String[]>) pedidos, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Sin pedidos", 
+                                "📋 **No hay pedidos registrados**");
+                        }
+                    }
+                    break;
+                    
+                case Token.ADD:
+                    // Crear pedido con dirección
+                    if (event.getParams() != null && event.getParams().size() >= 4) {
+                        String nombreDireccion = event.getParams().get(0);
+                        String urlGoogleMaps = event.getParams().get(1);
+                        String referencia = event.getParams().get(2);
+                        double total = Double.parseDouble(event.getParams().get(3));
+                        
+                        List<String[]> pedido = nPedido.crearPedidoDesdeGoogleMaps(nombreDireccion, urlGoogleMaps, referencia, total);
+                        
+                        if (!pedido.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "✅ Pedido Creado", enhancedHeaders, (ArrayList<String[]>) pedido, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Error al crear pedido", 
+                                "❌ **No se pudo crear el pedido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: pedido add <nombre_direccion, url_google_maps, referencia, total>**");
+                    }
+                    break;
+                    
+                case Token.MODIFY:
+                    if (event.getParams() != null && event.getParams().size() >= 2) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            String estado = event.getParams().get(1);
+                            
+                            List<String[]> pedido = nPedido.updateEstado(id, estado);
+                            
+                            if (!pedido.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "✅ Pedido Actualizado", enhancedHeaders, (ArrayList<String[]>) pedido, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Error al actualizar", 
+                                    "❌ **No se pudo actualizar el pedido**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: pedido modify <id, estado>**");
+                    }
+                    break;
+                    
+                case Token.DELETE:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            
+                            boolean deleted = nPedido.delete(id);
+                            
+                            if (deleted) {
+                                simpleNotifySuccess(event.getSender(), "✅ Pedido eliminado exitosamente");
+                            } else {
+                                simpleNotify(event.getSender(), "Error al eliminar", 
+                                    "❌ **No se pudo eliminar el pedido**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: pedido delete <id>**");
+                    }
+                    break;
+                    
+                default:
+                    simpleNotify(event.getSender(), "Acción no válida", 
+                        "❌ **Acción no válida para pedido**\n\n" +
+                        "📋 **Comandos disponibles:**\n" +
+                        "• pedido get - Obtener todos los pedidos\n" +
+                        "• pedido get <id> - Obtener pedido por ID\n" +
+                        "• pedido add <nombre_direccion, url_google_maps, referencia, total> - Crear pedido\n" +
+                        "• pedido modify <id, estado> - Actualizar estado\n" +
+                        "• pedido delete <id> - Eliminar");
+                    break;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error SQL en pedido. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error de Base de Datos", 
+                "❌ **Error al procesar la solicitud: " + ex.getMessage() + "**");
+        } catch (Exception ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error inesperado en pedido. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error del Sistema", 
+                "❌ **Error inesperado: " + ex.getMessage() + "**");
+        }
+    }
+
+    @Override
+    public void direccion(ParamsAction event) {
+        try {
+            System.out.println("=== PROCESANDO DIRECCION PARA USUARIO ===");
+            System.out.println("Usuario: " + event.getSender());
+            System.out.println("Action: " + event.getAction());
+            System.out.println("Params: " + event.getParams());
+            
+            switch (event.getAction()) {
+                case Token.GET:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        String param = event.getParams().get(0);
+                        
+                        // Intentar como ID numérico primero
+                        try {
+                            int id = Integer.parseInt(param);
+                            List<String[]> direccionData = nDireccion.getById(id);
+                            
+                            if (!direccionData.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Nombre", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "Dirección encontrada", enhancedHeaders, (ArrayList<String[]>) direccionData, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Dirección no encontrada", 
+                                    "❌ **No se encontró la dirección con ID: " + id + "**");
+                            }
+                        } catch (NumberFormatException e) {
+                            // Si no es número, buscar por nombre
+                            List<String[]> direcciones = nDireccion.getByNombre(param);
+                            
+                            if (!direcciones.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Nombre", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "Direcciones encontradas", enhancedHeaders, (ArrayList<String[]>) direcciones, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Dirección no encontrada", 
+                                    "❌ **No se encontró la dirección: " + param + "**");
+                            }
+                        }
+                    } else {
+                        // Obtener todas las direcciones
+                        List<String[]> direcciones = nDireccion.getAll();
+                        
+                        if (!direcciones.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Nombre", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "Todas las Direcciones", enhancedHeaders, (ArrayList<String[]>) direcciones, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Sin direcciones", 
+                                "📋 **No hay direcciones registradas**");
+                        }
+                    }
+                    break;
+                    
+                case Token.ADD:
+                    // Crear dirección desde Google Maps
+                    if (event.getParams() != null && event.getParams().size() >= 3) {
+                        String nombre = event.getParams().get(0);
+                        String urlGoogleMaps = event.getParams().get(1);
+                        String referencia = event.getParams().get(2);
+                        
+                        List<String[]> direccion = nDireccion.crearDesdeGoogleMaps(nombre, urlGoogleMaps, referencia);
+                        
+                        if (!direccion.isEmpty()) {
+                            String[] enhancedHeaders = {"ID", "Nombre", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                            tableNotifySuccess(event.getSender(), "✅ Dirección Creada", enhancedHeaders, (ArrayList<String[]>) direccion, event.getCommand());
+                        } else {
+                            simpleNotify(event.getSender(), "Error al crear dirección", 
+                                "❌ **No se pudo crear la dirección**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: direccion add <nombre, url_google_maps, referencia>**");
+                    }
+                    break;
+                    
+                case Token.MODIFY:
+                    if (event.getParams() != null && event.getParams().size() >= 4) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            String nombre = event.getParams().get(1);
+                            String urlGoogleMaps = event.getParams().get(2);
+                            String referencia = event.getParams().get(3);
+                            
+                            // Extraer coordenadas de la URL
+                            double[] coordenadas = NDireccion.extraerCoordenadasDeUrl(urlGoogleMaps);
+                            Double longitud = null;
+                            Double latitud = null;
+                            
+                            if (coordenadas != null) {
+                                latitud = coordenadas[0];
+                                longitud = coordenadas[1];
+                            }
+                            
+                            List<String[]> direccion = nDireccion.update(id, nombre, longitud, latitud, referencia);
+                            
+                            if (!direccion.isEmpty()) {
+                                String[] enhancedHeaders = {"ID", "Nombre", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
+                                tableNotifySuccess(event.getSender(), "✅ Dirección Actualizada", enhancedHeaders, (ArrayList<String[]>) direccion, event.getCommand());
+                            } else {
+                                simpleNotify(event.getSender(), "Error al actualizar", 
+                                    "❌ **No se pudo actualizar la dirección**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: direccion modify <id, nombre, url_google_maps, referencia>**");
+                    }
+                    break;
+                    
+                case Token.DELETE:
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        try {
+                            int id = Integer.parseInt(event.getParams().get(0));
+                            
+                            boolean deleted = nDireccion.delete(id);
+                            
+                            if (deleted) {
+                                simpleNotifySuccess(event.getSender(), "✅ Dirección eliminada exitosamente");
+                            } else {
+                                simpleNotify(event.getSender(), "Error al eliminar", 
+                                    "❌ **No se pudo eliminar la dirección**");
+                            }
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "Error de formato", 
+                                "❌ **El ID debe ser un número válido**");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                            "❌ **Uso: direccion delete <id>**");
+                    }
+                    break;
+                    
+                default:
+                    simpleNotify(event.getSender(), "Acción no válida", 
+                        "❌ **Acción no válida para dirección**\n\n" +
+                        "📋 **Comandos disponibles:**\n" +
+                        "• direccion get - Obtener todas las direcciones\n" +
+                        "• direccion get <id> - Obtener dirección por ID\n" +
+                        "• direccion get <nombre> - Buscar dirección por nombre\n" +
+                        "• direccion add <nombre, url_google_maps, referencia> - Crear dirección\n" +
+                        "• direccion modify <id, nombre, url_google_maps, referencia> - Actualizar\n" +
+                        "• direccion delete <id> - Eliminar");
+                    break;
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error SQL en direccion. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error de Base de Datos", 
+                "❌ **Error al procesar la solicitud: " + ex.getMessage() + "**");
+        } catch (Exception ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error inesperado en direccion. Usuario: " + event.getSender() + 
+                ", Action: " + event.getAction() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error del Sistema", 
+                "❌ **Error inesperado: " + ex.getMessage() + "**");
+        }
+    }
+
+    @Override
+    public void comprar(ParamsAction event) {
+        try {
+            System.out.println("=== PROCESANDO COMPRA COMPLETA PARA USUARIO ===");
+            System.out.println("Usuario: " + event.getSender());
+            System.out.println("Action: " + event.getAction());
+            System.out.println("Params: " + event.getParams());
+            
+            // El comando comprar no necesita action, es un comando único
+            // Formato: comprar <metodo_pago, url_google_maps>
+            
+            if (event.getParams() == null || event.getParams().size() < 2) {
+                simpleNotify(event.getSender(), "Parámetros insuficientes", 
+                    "❌ **Uso: comprar <metodo_pago, url_google_maps>**\n\n" +
+                    "📋 **Ejemplo:**\n" +
+                    "comprar <tarjeta, https://www.google.com/maps/@-17.8521448,-63.167395,16z?entry=ttu>\n\n" +
+                    "💳 **Métodos de pago soportados:**\n" +
+                    "• efectivo\n" +
+                    "• tarjeta\n" +
+                    "• transferencia\n" +
+                    "• pago_movil\n" +
+                    "• qr\n" +
+                    "• paypal\n" +
+                    "• bitcoin");
+                return;
+            }
+            
+            String metodoPago = event.getParams().get(0).toLowerCase();
+            
+            // Reconstruir la URL de Google Maps si se dividió en múltiples parámetros
+            String urlGoogleMaps = event.getParams().get(1);
+            if (event.getParams().size() > 2) {
+                // Si hay más parámetros, reconstruir la URL completa
+                StringBuilder urlBuilder = new StringBuilder(urlGoogleMaps);
+                for (int i = 2; i < event.getParams().size(); i++) {
+                    urlBuilder.append(",").append(event.getParams().get(i));
+                }
+                urlGoogleMaps = urlBuilder.toString();
+            }
+            
+            System.out.println("URL reconstruida: " + urlGoogleMaps);
+            
+            // Generar nombre de dirección automáticamente
+            String nombreDireccion = "Dirección de Entrega";
+            String referencia = "Entrega a domicilio";
+            String observaciones = "Compra realizada desde el carrito";
+            
+            // Validar método de pago
+            if (!NPago.esMetodoPagoValido(metodoPago)) {
+                simpleNotify(event.getSender(), "Método de pago inválido", 
+                    "❌ **Método de pago no soportado: " + metodoPago + "**\n\n" +
+                    "💳 **Métodos de pago soportados:**\n" +
+                    "• efectivo\n" +
+                    "• tarjeta\n" +
+                    "• transferencia\n" +
+                    "• pago_movil\n" +
+                    "• qr\n" +
+                    "• paypal\n" +
+                    "• bitcoin");
+                return;
+            }
+            
+            // 1. Verificar que el carrito tenga productos
+            // Primero obtener el cliente por email
+            List<String[]> clienteData = nCliente.getByUserId(getUserIdByEmail(event.getSender()));
+            if (clienteData.isEmpty()) {
+                simpleNotify(event.getSender(), "Cliente no encontrado", 
+                    "❌ **No se encontró su información de cliente. Regístrese primero.**");
+                return;
+            }
+            
+            int clienteId = Integer.parseInt(clienteData.get(0)[0]);
+            System.out.println("🔍 DEBUG: Cliente ID: " + clienteId);
+            
+            List<String[]> carritoData = nCarrito.getCarritoActivo(clienteId);
+            System.out.println("🔍 DEBUG: Carrito obtenido - ID: " + (carritoData.isEmpty() ? "NONE" : carritoData.get(0)[0]) + 
+                             ", Estado: " + (carritoData.isEmpty() ? "NONE" : carritoData.get(0)[4]) + 
+                             ", Total: " + (carritoData.isEmpty() ? "NONE" : carritoData.get(0)[3]));
+            
+            if (carritoData.isEmpty()) {
+                simpleNotify(event.getSender(), "Carrito vacío", 
+                    "❌ **Su carrito está vacío. Agregue productos antes de comprar.**\n\n" +
+                    "🛒 **Use el comando:**\n" +
+                    "carrito add <producto_id, cantidad>");
+                return;
+            }
+            
+            int carritoId = Integer.parseInt(carritoData.get(0)[0]);
+            System.out.println("🔍 DEBUG: Usando carrito ID: " + carritoId);
+            
+            List<String[]> detallesCarrito = nCarrito.getDetallesCarrito(carritoId);
+            System.out.println("🔍 DEBUG: Detalles del carrito encontrados: " + detallesCarrito.size());
+            
+            if (detallesCarrito.isEmpty()) {
+                simpleNotify(event.getSender(), "Carrito sin productos", 
+                    "❌ **Su carrito no tiene productos. Agregue productos antes de comprar.**\n\n" +
+                    "🛒 **Use el comando:**\n" +
+                    "carrito add <producto_id, cantidad>");
+                return;
+            }
+            
+            // Calcular total del carrito
+            double totalCarrito = 0.0;
+            for (String[] detalle : detallesCarrito) {
+                totalCarrito += Double.parseDouble(detalle[4]); // precio_total
+            }
+            
+            // 2. Crear dirección
+            List<String[]> direccion = nDireccion.crearDesdeGoogleMaps(nombreDireccion, urlGoogleMaps, referencia);
+            if (direccion.isEmpty()) {
+                simpleNotify(event.getSender(), "Error al crear dirección", 
+                    "❌ **No se pudo crear la dirección. Verifique la URL de Google Maps.**");
+                return;
+            }
+            
+            int direccionId = Integer.parseInt(direccion.get(0)[0]);
+            
+            // 3. Crear pedido
+            List<String[]> pedido = nPedido.crearPedidoConDireccionExistente(direccionId, totalCarrito);
+            if (pedido.isEmpty()) {
+                simpleNotify(event.getSender(), "Error al crear pedido", 
+                    "❌ **No se pudo crear el pedido.**");
+                return;
+            }
+            
+            int pedidoId = Integer.parseInt(pedido.get(0)[0]);
+            
+            // 4. Crear nota de venta desde carrito
+            List<String[]> notaVenta = nNotaVenta.crearNotaVentaDesdeCarrito(event.getSender(), pedidoId, observaciones);
+            if (notaVenta.isEmpty()) {
+                simpleNotify(event.getSender(), "Error al crear nota de venta", 
+                    "❌ **No se pudo crear la nota de venta.**");
+                return;
+            }
+            
+            int notaVentaId = Integer.parseInt(notaVenta.get(0)[0]);
+            
+            // 5. Procesar pago
+            System.out.println("🔍 DEBUG COMPRA: Procesando pago - NotaVenta ID: " + notaVentaId + ", Total: " + totalCarrito + ", Método: " + metodoPago);
+            List<String[]> pago = nPago.procesarPagoCompleto(notaVentaId, totalCarrito, metodoPago, "Pago automático desde comando comprar");
+            if (pago.isEmpty()) {
+                simpleNotify(event.getSender(), "Error al procesar pago", 
+                    "❌ **No se pudo procesar el pago.**");
+                return;
+            }
+            
+            // 6. Cambiar estado del carrito a "procesado"
+            boolean carritoActualizado = nCarrito.cambiarEstadoCarrito(carritoId, "procesado");
+            if (!carritoActualizado) {
+                System.out.println("⚠️ Advertencia: No se pudo cambiar el estado del carrito a procesado");
+            }
+            
+            // 6. Generar resumen de la compra
+            StringBuilder resumen = new StringBuilder();
+            resumen.append("🎉 **¡Compra realizada exitosamente!**\n\n");
+            resumen.append("📋 **Resumen de la compra:**\n");
+            resumen.append("• **Nota de Venta ID:** ").append(notaVentaId).append("\n");
+            resumen.append("• **Pedido ID:** ").append(pedidoId).append("\n");
+            resumen.append("• **Dirección ID:** ").append(direccionId).append("\n");
+            resumen.append("• **Total:** $").append(String.format("%.2f", totalCarrito)).append("\n");
+            resumen.append("• **Método de pago:** ").append(metodoPago).append("\n");
+            resumen.append("• **Estado:** Completada ✅\n\n");
+            
+            resumen.append("📍 **Dirección de entrega:**\n");
+            resumen.append("• **Nombre:** ").append(nombreDireccion).append("\n");
+            resumen.append("• **Referencia:** ").append(referencia).append("\n");
+            resumen.append("• **Google Maps:** ").append(urlGoogleMaps).append("\n\n");
+            
+            resumen.append("🛒 **Productos comprados:**\n");
+            for (String[] detalle : detallesCarrito) {
+                resumen.append("• ").append(detalle[5]).append(" x").append(detalle[3]).append(" = $").append(detalle[4]).append("\n");
+            }
+            resumen.append("\n");
+            
+            resumen.append("📝 **Observaciones:** ").append(observaciones).append("\n\n");
+            resumen.append("🚚 **Su pedido será procesado y enviado pronto.**\n");
+            resumen.append("📧 **Recibirá actualizaciones por email.**");
+            
+            simpleNotifySuccess(event.getSender(), resumen.toString());
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error SQL en comprar. Usuario: " + event.getSender() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error de Base de Datos", 
+                "❌ **Error al procesar la compra: " + ex.getMessage() + "**");
+        } catch (Exception ex) {
+            Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
+                "Error inesperado en comprar. Usuario: " + event.getSender() + 
+                ", Params: " + event.getParams(), ex);
+            simpleNotify(event.getSender(), "Error del Sistema", 
+                "❌ **Error inesperado: " + ex.getMessage() + "**");
+        }
+    }
+
+    @Override
     public void carrito(ParamsAction event) {
         try {
             // Primero, obtener el cliente_id del usuario que hace la petición
@@ -1796,6 +2491,27 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 "❌ **Se ha producido un error inesperado al procesar su solicitud.**\n\n" +
                 "🔧 **Error:** " + e.getMessage() + "\n\n" +
                 "📋 **Comando ejecutado:** " + event.getCommand());
+        }
+    }
+
+    /**
+     * Obtiene el ID del usuario por email
+     */
+    private int getUserIdByEmail(String email) throws SQLException {
+        String query = "SELECT id FROM \"user\" WHERE email = ?";
+        SqlConnection sqlConnection = new SqlConnection(DBConnection.database, DBConnection.server, DBConnection.port, DBConnection.user, DBConnection.password);
+        
+        try (var connection = sqlConnection.connect();
+             var ps = connection.prepareStatement(query)) {
+            
+            ps.setString(1, email);
+            var rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+            
+            throw new SQLException("Usuario no encontrado para el email: " + email);
         }
     }
 

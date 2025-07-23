@@ -110,6 +110,18 @@ public class Interpreter implements Runnable {
             case Token.CARRITO:
                 IcasoUsoListener.carrito(paramsAction);
                 break;
+            case Token.NOTAVENTA:
+                IcasoUsoListener.notaVenta(paramsAction);
+                break;
+            case Token.PEDIDO:
+                IcasoUsoListener.pedido(paramsAction);
+                break;
+            case Token.DIRECCION:
+                IcasoUsoListener.direccion(paramsAction);
+                break;
+            case Token.COMPRAR:
+                IcasoUsoListener.comprar(paramsAction);
+                break;
             default:
                 IcasoUsoListener.error(paramsAction);
                 break;
