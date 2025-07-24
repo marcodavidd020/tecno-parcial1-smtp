@@ -138,6 +138,50 @@ public class DPedido {
     }
     
     /**
+     * Obtiene pedidos por cliente (email)
+     */
+    public List<String[]> getByClienteEmail(String email) throws SQLException {
+        List<String[]> pedidos = new ArrayList<>();
+        String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
+                      "FROM pedido p " +
+                      "INNER JOIN direccion d ON p.direccion_id = d.id " +
+                      "INNER JOIN nota_venta nv ON p.id = nv.pedido_id " +
+                      "INNER JOIN cliente c ON nv.cliente_id = c.id " +
+                      "INNER JOIN \"user\" u ON c.user_id = u.id " +
+                      "WHERE u.email = ? " +
+                      "ORDER BY p.fecha DESC";
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
+            
+            ps.setString(1, email);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    pedidos.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        String.valueOf(rs.getInt("direccion_id")),
+                        rs.getString("fecha"),
+                        String.valueOf(rs.getBigDecimal("total")),
+                        rs.getString("estado"),
+                        rs.getString("fecha_hora_envio"),
+                        rs.getString("fecha_hora_entrega"),
+                        rs.getString("direccion_nombre"),
+                        rs.getString("longitud"),
+                        rs.getString("latitud"),
+                        rs.getString("referencia"),
+                        rs.getString("created_at"),
+                        rs.getString("updated_at")
+                    });
+                }
+            }
+        }
+        
+        return pedidos;
+    }
+    
+    /**
      * Guarda un nuevo pedido
      */
     public List<String[]> save(int direccionId, String fecha, double total, String estado) throws SQLException {

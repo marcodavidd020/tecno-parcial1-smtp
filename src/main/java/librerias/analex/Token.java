@@ -16,16 +16,7 @@ public class Token {
 
     // Constantes para los títulos de casos de uso
     public static final int USUARIO = 100;
-    public static final int EVENTO = 101;
-    public static final int RESERVA = 102;
-    public static final int PAGO = 103;
-    public static final int PROVEEDOR = 104;
     public static final int PROMOCION = 105;
-    public static final int PATROCINADOR = 106;
-    public static final int PATROCINIO = 107;
-    public static final int ROL = 108;
-    public static final int SERVICIO = 109;
-    public static final int DETALLEEVENTO = 110;
     public static final int HELP = 111;
     public static final int REGISTER = 112;
     public static final int CATEGORIA = 113;
@@ -123,26 +114,8 @@ public class Token {
                 return "error";
             case USUARIO:
                 return "usuario";
-            case EVENTO:
-                return "evento";
-            case RESERVA:
-                return "reserva";
-            case PAGO:
-                return "pago";
-            case PROVEEDOR:
-                return "proveedor";
             case PROMOCION:
                 return "promocion";
-            case PATROCINADOR:
-                return "patrocinador";
-            case PATROCINIO:
-                return "patrocinio";
-            case ROL:
-                return "rol";
-            case SERVICIO:
-                return "servicio";
-            case DETALLEEVENTO:
-                return "detalleevento";
             case HELP:
                 return "help";
             case REGISTER:
@@ -205,26 +178,8 @@ public class Token {
                 return ERROR;
             case "usuario":
                 return USUARIO;
-            case "evento":
-                return EVENTO;
-            case "reserva":
-                return RESERVA;
-            case "pago":
-                return PAGO;
-            case "proveedor":
-                return PROVEEDOR;
             case "promocion":
                 return PROMOCION;
-            case "patrocinador":
-                return PATROCINADOR;
-            case "patrocinio":
-                return PATROCINIO;
-            case "rol":
-                return ROL;
-            case "servicio":
-                return SERVICIO;
-            case "detalleevento":
-                return DETALLEEVENTO;
             case "help":
                 return HELP;
             case "register":

@@ -33,16 +33,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
 
     private EmailReceipt emailReceipt;
     private NUsuario nUsuario;
-    private NEvento nEvento;
-    private NReserva nReserva;
-    private NPago nPago;
-    private NProveedor nProveedor;
     private NPromocion nPromocion;
-    private NPatrocinador nPatrocinador;
-    private NPatrocinio nPatrocinio;
-    private NRol nRol;
-    private NServicio nServicio;
-    private NDetalleEvento nDetalleEvento;
     private NCategoria nCategoria;
     private NProducto nProducto;
     private NTipoPago nTipoPago;
@@ -56,16 +47,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         this.emailReceipt = new EmailReceipt();
         this.emailReceipt.setEmailListener(this);
         this.nUsuario = new NUsuario();
-        this.nEvento = new NEvento();
-        this.nReserva = new NReserva();
-        this.nPago = new NPago();
-        this.nProveedor = new NProveedor();
         this.nPromocion = new NPromocion();
-        this.nPatrocinador = new NPatrocinador();
-        this.nPatrocinio = new NPatrocinio();
-        this.nRol = new NRol();
-        this.nServicio = new NServicio();
-        this.nDetalleEvento = new NDetalleEvento();
         this.nCategoria = new NCategoria();
         this.nProducto = new NProducto();
         this.nTipoPago = new NTipoPago();
@@ -74,7 +56,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         this.nNotaVenta = new NNotaVenta();
         this.nPedido = new NPedido();
         this.nDireccion = new NDireccion();
-        this.nPago = new NPago();
     }
 
     public void start() {
@@ -136,204 +117,13 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     }
 
 
-    @Override
-    public void evento(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nEvento.save(event.getParams());
-                    List<String[]> eventoDataSaved = nEvento.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Evento guardado correctamente");
-                    tableNotifySuccess(event.getSender(), "Evento guardado correctamente", DEvento.HEADERS, (ArrayList<String[]>) eventoDataSaved, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de evento por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> eventoData = nEvento.get(id);
-                        if (!eventoData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Evento", DEvento.HEADERS, (ArrayList<String[]>) eventoData, event.getCommand());
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Evento no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los eventos
-                        tableNotifySuccess(event.getSender(), "Lista de Eventos", DEvento.HEADERS, nEvento.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> eventoDataUpdated = nEvento.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Evento actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Evento actualizado correctamente", DEvento.HEADERS, (ArrayList<String[]>) eventoDataUpdated, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nEvento.delete(event.getParams());
-                    List<String[]> eventoDataDeleted = nEvento.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Evento eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Evento eliminado correctamente", DEvento.HEADERS, (ArrayList<String[]>) eventoDataDeleted, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    // Continuación de los métodos dentro de la clase EmailApp
-    @Override
-    public void reserva(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nReserva.save(event.getParams());
-                    List<String[]> reservaDataSaved = nReserva.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Reserva creada correctamente");
-                    tableNotifySuccess(event.getSender(), "Reserva creada correctamente", DReserva.HEADERS, (ArrayList<String[]>) reservaDataSaved, event.getCommand());
-                    break;
-                case Token.GET:
-                    // tableNotifySuccess(event.getSender(), "Lista de Reservas", DReserva.HEADERS, nReserva.list());
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de reserva por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> reservaData = nReserva.get(id);
-                        if (!reservaData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles de la Reserva", DReserva.HEADERS, (ArrayList<String[]>) reservaData, event.getCommand());
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Reserva no encontrada.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todas las reservas
-                        tableNotifySuccess(event.getSender(), "Lista de Reservas", DReserva.HEADERS, nReserva.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> reservaDataUpdated = nReserva.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Reserva actualizada correctamente");
-                    tableNotifySuccess(event.getSender(), "Reserva actualizada correctamente", DReserva.HEADERS, (ArrayList<String[]>) reservaDataUpdated, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nReserva.delete(event.getParams());
-                    List<String[]> reservaDataDeleted = nReserva.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Reserva eliminada correctamente");
-                    tableNotifySuccess(event.getSender(), "Reserva eliminada correctamente", DReserva.HEADERS, (ArrayList<String[]>) reservaDataDeleted, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    @Override
-    public void pago(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de pago por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> pagoData = nPago.getById(id);
-                        if (!pagoData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Pago", DPago.HEADERS, (ArrayList<String[]>) pagoData, event.getCommand());
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Pago no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los pagos
-                        tableNotifySuccess(event.getSender(), "Lista de Pagos", DPago.HEADERS, (ArrayList<String[]>) nPago.getAll(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    if (event.getParams() != null && event.getParams().size() >= 2) {
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        String estado = event.getParams().get(1);
-                        List<String[]> pagoDataUpdated = nPago.updateEstado(id, estado);
-                        tableNotifySuccess(event.getSender(), "Pago actualizado correctamente", DPago.HEADERS, (ArrayList<String[]>) pagoDataUpdated, event.getCommand());
-                    } else {
-                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
-                            "❌ **Uso: pago modify <id, estado>**");
-                    }
-                    break;
-                case Token.DELETE:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        boolean deleted = nPago.delete(id);
-                        if (deleted) {
-                            simpleNotifySuccess(event.getSender(), "Pago eliminado correctamente");
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "No se pudo eliminar el pago.");
-                        }
-                    } else {
-                        simpleNotify(event.getSender(), "Parámetros insuficientes", 
-                            "❌ **Uso: pago delete <id>**");
-                    }
-                    break;
-                default:
-                    simpleNotify(event.getSender(), "Acción no válida", 
-                        "❌ **Acción no válida para pago**\n\n" +
-                        "📋 **Comandos disponibles:**\n" +
-                        "• pago get - Obtener todos los pagos\n" +
-                        "• pago get <id> - Obtener pago por ID\n" +
-                        "• pago modify <id, estado> - Actualizar estado\n" +
-                        "• pago delete <id> - Eliminar");
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        }
-    }
 
-    @Override
-    public void proveedor(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nProveedor.save(event.getParams());
-                    List<String[]> proveedorDataSaved = nProveedor.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Proveedor agregado correctamente");
-                    tableNotifySuccess(event.getSender(), "Proveedor agregado correctamente", DProveedor.HEADERS, (ArrayList<String[]>) proveedorDataSaved, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de proveedor por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> proveedorData = nProveedor.get(id);
-                        if (!proveedorData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Proveedor", DProveedor.HEADERS, (ArrayList<String[]>) proveedorData, event.getCommand());
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Proveedor no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los proveedores
-                        tableNotifySuccess(event.getSender(), "Lista de Proveedores", DProveedor.HEADERS, nProveedor.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> proveedorDataUpdated = nProveedor.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Proveedor actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Proveedor actualizado correctamente", DProveedor.HEADERS, (ArrayList<String[]>) proveedorDataUpdated, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nProveedor.delete(event.getParams());
-                    List<String[]> proveedorDataDeleted = nProveedor.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Proveedor eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Proveedor eliminado correctamente", DProveedor.HEADERS, (ArrayList<String[]>) proveedorDataDeleted, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        }
-    }
+
+
+
+
 
     @Override
     public void promocion(ParamsAction event) {
@@ -481,239 +271,15 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         }
     }
 
-    @Override
-    public void patrocinador(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nPatrocinador.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinador agregado correctamente");
-                    List<String[]> patrocinadorDataSaved = nPatrocinador.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinador agregado correctamente: " + Arrays.toString(patrocinadorDataSaved));
-                    tableNotifySuccess(event.getSender(), "Patrocinador agregado correctamente", DPatrocinador.HEADERS, (ArrayList<String[]>) patrocinadorDataSaved);
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de patrocinador por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> patrocinadorData = nPatrocinador.get(id);
-                        if (!patrocinadorData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Patrocinador", DPatrocinador.HEADERS, (ArrayList<String[]>) patrocinadorData);
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Patrocinador no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los patrocinadores
-                        tableNotifySuccess(event.getSender(), "Lista de Patrocinadores", DPatrocinador.HEADERS, nPatrocinador.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> patrocinadorDataUpdated = nPatrocinador.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinador actualizado correctamente: " + Arrays.toString(patrocinadorDataUpdated));
-                    tableNotifySuccess(event.getSender(), "Patrocinador actualizado correctamente", DPatrocinador.HEADERS, (ArrayList<String[]>) patrocinadorDataUpdated);
-                    break;
-                case Token.DELETE:
-//                    nPatrocinador.delete(event.getParams());
-//                    simpleNotifySuccess(event.getSender(), "Patrocinador eliminado correctamente");
-                    List<String[]> patrocinadorDataDeleted = nPatrocinador.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinador eliminado correctamente: " + Arrays.toString(patrocinadorDataDeleted));
-                    tableNotifySuccess(event.getSender(), "Patrocinador eliminado correctamente", DPatrocinador.HEADERS, (ArrayList<String[]>) patrocinadorDataDeleted);
-                    break;
-            }
-        } catch (Exception ex) {
-            System.out.println("Error: " + ex.getMessage());
-            handleError(CONSTRAINTS_ERROR, event.getSender(), ex.getMessage() != null ? Collections.singletonList("Error: " + ex.getMessage()) : null);
-        }
-    }
 
-    @Override
-    public void patrocinio(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-//                    nPatrocinio.save(event.getParams());
-                    List<String[]> patrocinioDataSaved = nPatrocinio.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinio registrado correctamente");
-                    tableNotifySuccess(event.getSender(), "Patrocinio registrado correctamente", DPatrocinio.HEADERS, (ArrayList<String[]>) patrocinioDataSaved, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de patrocinio por ID
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> patrocinioData = nPatrocinio.get(id);
-                        if (!patrocinioData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Patrocinio", DPatrocinio.HEADERS, (ArrayList<String[]>) patrocinioData);
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Patrocinio no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los patrocinios
-                        tableNotifySuccess(event.getSender(), "Lista de Patrocinios", DPatrocinio.HEADERS, nPatrocinio.list());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> patrocinioDataUpdated = nPatrocinio.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinio actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Patrocinio actualizado correctamente", DPatrocinio.HEADERS, (ArrayList<String[]>) patrocinioDataUpdated, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nPatrocinio.delete(event.getParams());
-                    List<String[]> patrocinioDataDeleted = nPatrocinio.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Patrocinio eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Patrocinio eliminado correctamente", DPatrocinio.HEADERS, (ArrayList<String[]>) patrocinioDataDeleted, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        }
-    }
 
-    @Override
-    public void rol(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-//                    nRol.save(event.getParams());
-                    List<String[]> rolDataAdd = nRol.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Rol guardado correctamente");
-                    tableNotifySuccess(event.getSender(), "Rol guardado correctamente", DRol.HEADERS, (ArrayList<String[]>) rolDataAdd, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de rol por ID
-                        String idParam = event.getParams().get(0); // Supone que el ID es el primer parámetro
-                        try {
-                            int id = Integer.parseInt(idParam);
-                            List<String[]> rolData = nRol.get(id);
-                            if (rolData != null) {
-                                // simpleNotifySuccess(event.getSender(), "Rol encontrado: " + Arrays.toString(rolData));
-                                tableNotifySuccess(event.getSender(), "Rol encontrado", DRol.HEADERS, (ArrayList<String[]>) rolData, event.getCommand());
-                            } else {
-                                simpleNotify(event.getSender(), "Error", "Rol no encontrado.");
-                            }
-                        } catch (NumberFormatException e) {
-                            simpleNotify(event.getSender(), "Error", "ID inválido.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los roles
-                        tableNotifySuccess(event.getSender(), "Lista de Roles", DRol.HEADERS, nRol.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    List<String[]> rolDataUpdate = nRol.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Rol actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Rol actualizado correctamente", DRol.HEADERS, (ArrayList<String[]>) rolDataUpdate, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nRol.delete(event.getParams());
-                    List<String[]> rolDataDelete = nRol.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Rol eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Rol eliminado correctamente", DRol.HEADERS, (ArrayList<String[]>) rolDataDelete, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        }
-    }
 
-    @Override
-    public void servicio(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nServicio.save(event.getParams());
-                    List<String[]> servicioDataAdd = nServicio.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Servicio guardado correctamente");
-                    tableNotifySuccess(event.getSender(), "Servicio guardado correctamente", DServicio.HEADERS, (ArrayList<String[]>) servicioDataAdd, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de servicio por ID
-                        String idParam = event.getParams().get(0); // Supone que el ID es el primer parámetro
-                        try {
-                            int id = Integer.parseInt(idParam);
-                            List<String[]> servicioData = nServicio.get(id);
-                            if (servicioData != null) {
-                                // simpleNotifySuccess(event.getSender(), "Servicio encontrado: " + Arrays.toString(servicioData));
-                                tableNotifySuccess(event.getSender(), "Servicio encontrado", DServicio.HEADERS, (ArrayList<String[]>) servicioData, event.getCommand());
-                            } else {
-                                simpleNotify(event.getSender(), "Error", "Servicio no encontrado.");
-                            }
-                        } catch (NumberFormatException e) {
-                            simpleNotify(event.getSender(), "Error", "ID inválido.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los servicios
-                        tableNotifySuccess(event.getSender(), "Lista de Servicios", DServicio.HEADERS, nServicio.list());
-                    }
-                    break;
-                    case Token.MODIFY:
-                    List<String[]> servicioDataUpdate = nServicio.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Servicio actualizado correctamente");
-                    tableNotifySuccess(event.getSender(), "Servicio actualizado correctamente", DServicio.HEADERS, (ArrayList<String[]>) servicioDataUpdate, event.getCommand());
-                    break;
-                    case Token.DELETE:
-                    // nServicio.delete(event.getParams());
-                    List<String[]> servicioDataDelete = nServicio.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Servicio eliminado correctamente");
-                    tableNotifySuccess(event.getSender(), "Servicio eliminado correctamente", DServicio.HEADERS, (ArrayList<String[]>) servicioDataDelete, event.getCommand());
-                    break;
-            }
-        } catch (NumberFormatException | SQLException | IndexOutOfBoundsException ex) {
-            handleError(NUMBER_FORMAT_ERROR, event.getSender(), null);
-        }
-    }
 
-    @Override
-    public void detalleEvento(ParamsAction event) {
-        try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                    // nDetalleEvento.save(event.getParams());
-                    List<String[]> detalleEventoDataAdd = nDetalleEvento.save(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Detalle de Evento guardado correctamente");
-                    tableNotifySuccess(event.getSender(), "Detalle de Evento guardado correctamente", DDetalleEvento.HEADERS, (ArrayList<String[]>) detalleEventoDataAdd, event.getCommand());
-                    break;
-                case Token.GET:
-                    if (event.getParams() != null && !event.getParams().isEmpty()) {
-                        // Si hay parámetros, se asume que es una solicitud de detalle de evento por ID
-                        int evento_id = Integer.parseInt(event.getParams().get(0));
-                        int servicio_id = Integer.parseInt(event.getParams().get(1));
-                        List<String[]> detalleEventoData = nDetalleEvento.get(evento_id, servicio_id);
-                        if (detalleEventoData != null) {
-                            tableNotifySuccess(event.getSender(), "Detalles del Detalle de Evento", DDetalleEvento.HEADERS, (ArrayList<String[]>) detalleEventoData, event.getCommand());
-                        } else {
-                            simpleNotify(event.getSender(), "Error", "Detalle de Evento no encontrado.");
-                        }
-                    } else {
-                        // Si no hay parámetros, se asume que es una solicitud de todos los detalles de eventos
-                        tableNotifySuccess(event.getSender(), "Lista de Detalles de Eventos", DDetalleEvento.HEADERS, nDetalleEvento.list(), event.getCommand());
-                    }
-                    break;
-                case Token.MODIFY:
-                    nDetalleEvento.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Detalle de Evento actualizado correctamente");
-                    List<String[]> detalleEventoDataUpdate = nDetalleEvento.update(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Detalle de Evento actualizado correctamente: " + Arrays.toString(detalleEventoDataUpdate));
-                    tableNotifySuccess(event.getSender(), "Detalle de Evento actualizado correctamente", DDetalleEvento.HEADERS, (ArrayList<String[]>) detalleEventoDataUpdate, event.getCommand());
-                    break;
-                case Token.DELETE:
-                    // nDetalleEvento.delete(event.getParams());
-                    List<String[]> detalleEventoDataDelete = nDetalleEvento.delete(event.getParams());
-                    // simpleNotifySuccess(event.getSender(), "Detalle de Evento eliminado
-                    tableNotifySuccess(event.getSender(), "Detalle de Evento eliminado correctamente", DDetalleEvento.HEADERS, (ArrayList<String[]>) detalleEventoDataDelete, event.getCommand());
-                    break;
-            }
-        } catch (SQLException ex) {
-            handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error SQL: " + ex.getMessage()));
-        } catch (IndexOutOfBoundsException ex) {
-            handleError(INDEX_OUT_OF_BOUND_ERROR, event.getSender(), Collections.singletonList("Error de índice: " + ex.getMessage()));
-        }
-    }
+
+
+
+
+
 
     @Override
     public void error(ParamsAction event) {
@@ -786,113 +352,24 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
 
                 // Comandos de Registro
                 data.add(new String[]{"Registro", "register user &lt;nombre, celular, email, genero, password, nit&gt;", "Registra un nuevo usuario y cliente"});
-                data.add(new String[]{"Registro", "register cliente &lt;nit&gt;", "Registra un usuario existente como cliente"});
 
                 // Usuarios
                 data.add(new String[]{"Usuarios", "usuario get", "Obtiene todos los usuarios"});
-                data.add(new String[]{"Usuarios", "usuario get &lt;id&gt;", "Obtiene usuario por ID"});
-                data.add(new String[]{"Usuarios", "usuario add &lt;nombre, apellido, telefono, genero, email, password, rol_id&gt;", "Crea un usuario"});
-                data.add(new String[]{"Usuarios", "usuario modify &lt;id, nombre, apellido, telefono, genero, email&gt;", "Modifica un usuario por ID"});
-                data.add(new String[]{"Usuarios", "usuario delete &lt;id&gt;", "Elimina un usuario por ID"});
-
-                // Eventos
-                data.add(new String[]{"Eventos", "evento get", "Obtiene todos los eventos"});
-                data.add(new String[]{"Eventos", "evento get &lt;id&gt;", "Obtiene evento por ID"});
-                data.add(new String[]{"Eventos", "evento add &lt;nombre, descripcion, capacidad, precio_entrada, fecha, hora, ubicacion, estado, imagen, servicio_id&gt;", "Crea un evento"});
-                data.add(new String[]{"Eventos", "evento modify &lt;id, nombre, descripcion, capacidad, precio_entrada&gt;", "Modifica un evento por ID"});
-                data.add(new String[]{"Eventos", "evento delete &lt;id&gt;", "Elimina un evento por ID"});
-
-                // Patrocinadores y Patrocinios
-                data.add(new String[]{"Patrocinadores", "patrocinador get", "Obtener todos los patrocinadores"});
-                data.add(new String[]{"Patrocinadores", "patrocinador get &lt;id&gt;", "Obtener patrocinador por ID"});
-                data.add(new String[]{"Patrocinadores", "patrocinador add &lt;nombre, descripcion, email, telefono&gt;", "Crea un patrocinador"});
-                data.add(new String[]{"Patrocinadores", "patrocinador modify &lt;id, nombre, descripcion, email, telefono&gt;", "Modifica un patrocinador por ID"});
-                data.add(new String[]{"Patrocinadores", "patrocinador delete &lt;id&gt;", "Elimina un patrocinador por ID"});
-
-                data.add(new String[]{"Patrocinios", "patrocinio get", "Obtiene todos los patrocinios"});
-                data.add(new String[]{"Patrocinios", "patrocinio get &lt;id&gt;", "Obtiene patrocinio por ID"});
-                data.add(new String[]{"Patrocinios", "patrocinio add &lt;aporte, patrocinador_id, evento_id&gt;", "Crea un patrocinio"});
-                data.add(new String[]{"Patrocinios", "patrocinio modify &lt;id, aporte&gt;", "Modifica un patrocinio por ID"});
-                data.add(new String[]{"Patrocinios", "patrocinio delete &lt;id&gt;", "Elimina un patrocinio por ID"});
-
-                // Roles
-                data.add(new String[]{"Roles", "rol get", "Obtiene todos los roles"});
-                data.add(new String[]{"Roles", "rol get &lt;id&gt;", "Obtiene rol por ID"});
-                data.add(new String[]{"Roles", "rol add &lt;nombre&gt;", "Crear un rol"});
-                data.add(new String[]{"Roles", "rol modify &lt;id, nombre&gt;", "Modifica un rol por ID"});
-                data.add(new String[]{"Roles", "rol delete &lt;id&gt;", "Elimina un rol por ID"});
-
-                // Servicios
-                data.add(new String[]{"Servicios", "servicio get", "Obtiene todos los servicios"});
-                data.add(new String[]{"Servicios", "servicio get &lt;id&gt;", "Obtiene servicio por ID"});
-                data.add(new String[]{"Servicios", "servicio add &lt;nombre, descripcion&gt;", "Crea un servicio"});
-                data.add(new String[]{"Servicios", "servicio modify &lt;id, nombre, descripcion&gt;", "Modifica un servicio por ID"});
-                data.add(new String[]{"Servicios", "servicio delete &lt;id&gt;", "Elimina un servicio por ID"});
-
-                // Reservas
-                data.add(new String[]{"Reservas", "reserva get", "Obtiene todas las reservas"});
-                data.add(new String[]{"Reservas", "reserva get &lt;id&gt;", "Obtiene reserva por ID"});
-                data.add(new String[]{"Reservas", "reserva add &lt;codigo, fecha, costo_entrada, cantidad, costo_total, estado, usuario_id, evento_id&gt;", "Crea una reserva"});
-                data.add(new String[]{"Reservas", "reserva modify &lt;id, estado&gt;", "Modifica una reserva por ID"});
-                data.add(new String[]{"Reservas", "reserva delete &lt;id&gt;", "Elimina una reserva por ID"});
-
-                // Proveedores
-                data.add(new String[]{"Proveedores", "proveedor get", "Obtener todos los proveedores"});
-                data.add(new String[]{"Proveedores", "proveedor get &lt;id&gt;", "Obtiene proveedor por ID"});
-                data.add(new String[]{"Proveedores", "proveedor add &lt;nombre, telefono, email, direccion&gt;", "Crea un proveedor"});
-                data.add(new String[]{"Proveedores", "proveedor modify &lt;id, nombre, telefono, email, direccion&gt;", "Modifica un proveedor por ID"});
-                data.add(new String[]{"Proveedores", "proveedor delete &lt;id&gt;", "Elimina un proveedor por ID"});
 
                 // Promociones
                 data.add(new String[]{"Promociones", "promocion get", "Obtener todas las promociones"});
-                data.add(new String[]{"Promociones", "promocion get &lt;id&gt;", "Obtiene promoción por ID"});
-                data.add(new String[]{"Promociones", "promocion get &lt;producto_id&gt;", "Obtiene promociones por producto"});
-                data.add(new String[]{"Promociones", "promocion add &lt;nombre, fecha_inicio, fecha_fin, descuento, producto_id&gt;", "Crea una promoción"});
-                data.add(new String[]{"Promociones", "promocion modify &lt;id, nombre, fecha_inicio, fecha_fin, descuento, producto_id&gt;", "Modifica una promoción"});
-                data.add(new String[]{"Promociones", "promocion delete &lt;id&gt;", "Elimina una promoción"});
 
-                // Pagos
-                data.add(new String[]{"Pagos", "pago get", "Obtiene todos los pagos"});
-                data.add(new String[]{"Pagos", "pago get &lt;id&gt;", "Obtiene el pago por ID"});
-                data.add(new String[]{"Pagos", "pago add &lt;monto, fecha, metodo_pago, reserva_id&gt;", "Crea un pago"});
-                data.add(new String[]{"Pagos", "pago modify &lt;id, monto&gt;", "Modifica un pago"});
-                data.add(new String[]{"Pagos", "pago delete &lt;id&gt;", "Elimina un pago"});
-
-                // Detalles de Evento
-                        data.add(new String[]{"Detalles de Evento", "detalleEvento get", "Obtiene todas los detalleevento"});
-        data.add(new String[]{"Detalles de Evento", "detalleEvento get &lt;id&gt;", "Obtiene el detalleevento por ID"});
-        data.add(new String[]{"Detalles de Evento", "detalleEvento add &lt;evento_id, servicio_id, costo_servicio&gt;", "Crea un detalleevento"});
-        data.add(new String[]{"Detalles de Evento", "detalleEvento modify &lt;evento_id, servicio_id, costo_servicio&gt;", "Modifica un detalleevento"});
-        data.add(new String[]{"Detalles de Evento", "detalleEvento delete &lt;id&gt;", "Elimina un detalleevento"});
-        
         // Comandos de Categorías
         data.add(new String[]{"Categorías", "categoria get", "Obtiene todas las categorías"});
-        data.add(new String[]{"Categorías", "categoria get &lt;id&gt;", "Obtiene categoría por ID"});
-        data.add(new String[]{"Categorías", "categoria add &lt;nombre, descripcion&gt;", "Crea una categoría"});
-        data.add(new String[]{"Categorías", "categoria modify &lt;id, nombre, descripcion&gt;", "Modifica una categoría"});
-        data.add(new String[]{"Categorías", "categoria delete &lt;id&gt;", "Elimina una categoría"});
         
         // Comandos de Productos
         data.add(new String[]{"Productos", "producto get", "Obtiene todos los productos"});
-        data.add(new String[]{"Productos", "producto get &lt;id&gt;", "Obtiene producto por ID"});
-        data.add(new String[]{"Productos", "producto add &lt;cod_producto, nombre, precio_compra, precio_venta, imagen, descripcion, categoria_id&gt;", "Crea un producto"});
-        data.add(new String[]{"Productos", "producto modify &lt;id, cod_producto, nombre, precio_compra, precio_venta, imagen, descripcion, categoria_id&gt;", "Modifica un producto"});
-        data.add(new String[]{"Productos", "producto delete &lt;id&gt;", "Elimina un producto"});
         
         // Comandos de Tipos de Pago
         data.add(new String[]{"Tipos de Pago", "tipopago get", "Obtiene todos los tipos de pago"});
-        data.add(new String[]{"Tipos de Pago", "tipopago get &lt;id&gt;", "Obtiene tipo de pago por ID"});
-        data.add(new String[]{"Tipos de Pago", "tipopago add &lt;tipo_pago&gt;", "Crea un tipo de pago"});
-        data.add(new String[]{"Tipos de Pago", "tipopago modify &lt;id, tipo_pago&gt;", "Modifica un tipo de pago"});
-        data.add(new String[]{"Tipos de Pago", "tipopago delete &lt;id&gt;", "Elimina un tipo de pago"});
         
         // Comandos de Clientes
         data.add(new String[]{"Clientes", "cliente get", "Obtiene todos los clientes"});
-        data.add(new String[]{"Clientes", "cliente get &lt;id&gt;", "Obtiene cliente por ID"});
-        data.add(new String[]{"Clientes", "cliente get &lt;nit&gt;", "Obtiene cliente por NIT"});
-        data.add(new String[]{"Clientes", "cliente add &lt;nit, user_id&gt;", "Crea un cliente"});
-        data.add(new String[]{"Clientes", "cliente modify &lt;id, nit&gt;", "Modifica un cliente"});
-        data.add(new String[]{"Clientes", "cliente delete &lt;id&gt;", "Elimina un cliente"});
         
         // Comandos de Carrito
         data.add(new String[]{"Carrito", "carrito get", "Obtiene tu carrito activo con productos"});
@@ -902,26 +379,13 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
 
         // Sistema de Ventas
         data.add(new String[]{"Nota de Venta", "notaventa get", "Obtiene mis notas de venta"});
-        data.add(new String[]{"Nota de Venta", "notaventa get &lt;id&gt;", "Obtiene nota de venta por ID"});
-        data.add(new String[]{"Nota de Venta", "notaventa add &lt;observaciones&gt; [pedido_id]", "Crea nota de venta desde carrito"});
-        data.add(new String[]{"Nota de Venta", "notaventa modify &lt;id, estado, observaciones&gt;", "Actualiza nota de venta"});
-        data.add(new String[]{"Nota de Venta", "notaventa delete &lt;id&gt;", "Elimina nota de venta"});
 
-        data.add(new String[]{"Pedido", "pedido get", "Obtiene todos los pedidos"});
-        data.add(new String[]{"Pedido", "pedido get &lt;id&gt;", "Obtiene pedido por ID"});
-        data.add(new String[]{"Pedido", "pedido add &lt;nombre_direccion, url_google_maps, referencia, total&gt;", "Crea pedido con dirección"});
-        data.add(new String[]{"Pedido", "pedido modify &lt;id, estado&gt;", "Actualiza estado del pedido"});
-        data.add(new String[]{"Pedido", "pedido delete &lt;id&gt;", "Elimina pedido"});
+        data.add(new String[]{"Pedido", "pedido get", "Obtiene mis pedidos"});
 
         data.add(new String[]{"Dirección", "direccion get", "Obtiene todas las direcciones"});
-        data.add(new String[]{"Dirección", "direccion get &lt;id&gt;", "Obtiene dirección por ID"});
-        data.add(new String[]{"Dirección", "direccion get &lt;nombre&gt;", "Busca dirección por nombre"});
-        data.add(new String[]{"Dirección", "direccion add &lt;nombre, url_google_maps, referencia&gt;", "Crea dirección desde Google Maps"});
-        data.add(new String[]{"Dirección", "direccion modify &lt;id, nombre, url_google_maps, referencia&gt;", "Actualiza dirección"});
-        data.add(new String[]{"Dirección", "direccion delete &lt;id&gt;", "Elimina dirección"});
 
         // Comando de Compra Completa
-        data.add(new String[]{"Compra", "comprar &lt;metodo_pago, url_google_maps&gt;", "Realiza compra completa desde carrito"});
+                        data.add(new String[]{"Compra", "comprar &lt;tipo_pago_id, url_google_maps&gt;", "Realiza compra completa desde carrito"});
 
                 System.out.println("=== ENVIANDO RESPUESTA HELP ===");
                 System.out.println("Filas de datos: " + data.size());
@@ -1817,15 +1281,15 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                 "❌ **El ID debe ser un número válido**");
                         }
                     } else {
-                        // Obtener todos los pedidos
-                        List<String[]> pedidos = nPedido.getAll();
+                        // Obtener pedidos del usuario autenticado
+                        List<String[]> pedidos = nPedido.getByClienteEmail(event.getSender());
                         
                         if (!pedidos.isEmpty()) {
                             String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Nombre Dirección", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
-                            tableNotifySuccess(event.getSender(), "Todos los Pedidos", enhancedHeaders, (ArrayList<String[]>) pedidos, event.getCommand());
+                            tableNotifySuccess(event.getSender(), "Mis Pedidos", enhancedHeaders, (ArrayList<String[]>) pedidos, event.getCommand());
                         } else {
                             simpleNotify(event.getSender(), "Sin pedidos", 
-                                "📋 **No hay pedidos registrados**");
+                                "📋 **No tienes pedidos registrados**");
                         }
                     }
                     break;
@@ -2100,25 +1564,41 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             System.out.println("Params: " + event.getParams());
             
             // El comando comprar no necesita action, es un comando único
-            // Formato: comprar <metodo_pago, url_google_maps>
+            // Formato: comprar <tipo_pago_id, url_google_maps>
             
             if (event.getParams() == null || event.getParams().size() < 2) {
                 simpleNotify(event.getSender(), "Parámetros insuficientes", 
-                    "❌ **Uso: comprar <metodo_pago, url_google_maps>**\n\n" +
+                    "❌ **Uso: comprar <tipo_pago_id, url_google_maps>**\n\n" +
                     "📋 **Ejemplo:**\n" +
-                    "comprar <tarjeta, https://www.google.com/maps/@-17.8521448,-63.167395,16z?entry=ttu>\n\n" +
-                    "💳 **Métodos de pago soportados:**\n" +
-                    "• efectivo\n" +
-                    "• tarjeta\n" +
-                    "• transferencia\n" +
-                    "• pago_movil\n" +
-                    "• qr\n" +
-                    "• paypal\n" +
-                    "• bitcoin");
+                    "comprar <1, https://www.google.com/maps/@-17.8521448,-63.167395,16z?entry=ttu>\n\n" +
+                    "💳 **Para ver los tipos de pago disponibles use:**\n" +
+                    "tipopago get");
                 return;
             }
             
-            String metodoPago = event.getParams().get(0).toLowerCase();
+            // Obtener el ID del tipo de pago
+            int tipoPagoId;
+            try {
+                tipoPagoId = Integer.parseInt(event.getParams().get(0));
+            } catch (NumberFormatException e) {
+                simpleNotify(event.getSender(), "ID de tipo de pago inválido", 
+                    "❌ **El primer parámetro debe ser un número (ID del tipo de pago).**\n\n" +
+                    "💳 **Para ver los tipos de pago disponibles use:**\n" +
+                    "tipopago get");
+                return;
+            }
+            
+            // Obtener el tipo de pago de la base de datos
+            List<String[]> tipoPagoData = nTipoPago.getById(tipoPagoId);
+            if (tipoPagoData.isEmpty()) {
+                simpleNotify(event.getSender(), "Tipo de pago no encontrado", 
+                    "❌ **No se encontró el tipo de pago con ID: " + tipoPagoId + "**\n\n" +
+                    "💳 **Para ver los tipos de pago disponibles use:**\n" +
+                    "tipopago get");
+                return;
+            }
+            
+            String metodoPago = tipoPagoData.get(0)[1]; // El nombre del método de pago
             
             // Reconstruir la URL de Google Maps si se dividió en múltiples parámetros
             String urlGoogleMaps = event.getParams().get(1);
@@ -2139,7 +1619,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             String observaciones = "Compra realizada desde el carrito";
             
             // Validar método de pago
-            if (!NPago.esMetodoPagoValido(metodoPago)) {
+            if (!esMetodoPagoValido(metodoPago)) {
                 simpleNotify(event.getSender(), "Método de pago inválido", 
                     "❌ **Método de pago no soportado: " + metodoPago + "**\n\n" +
                     "💳 **Métodos de pago soportados:**\n" +
@@ -2228,14 +1708,9 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             int notaVentaId = Integer.parseInt(notaVenta.get(0)[0]);
             
-            // 5. Procesar pago
+            // 5. Procesar pago (simulado)
             System.out.println("🔍 DEBUG COMPRA: Procesando pago - NotaVenta ID: " + notaVentaId + ", Total: " + totalCarrito + ", Método: " + metodoPago);
-            List<String[]> pago = nPago.procesarPagoCompleto(notaVentaId, totalCarrito, metodoPago, "Pago automático desde comando comprar");
-            if (pago.isEmpty()) {
-                simpleNotify(event.getSender(), "Error al procesar pago", 
-                    "❌ **No se pudo procesar el pago.**");
-                return;
-            }
+            // El pago se procesa automáticamente al crear la nota de venta
             
             // 6. Cambiar estado del carrito a "procesado"
             boolean carritoActualizado = nCarrito.cambiarEstadoCarrito(carritoId, "procesado");
@@ -2250,7 +1725,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             resumen.append("• **Nota de Venta ID:** ").append(notaVentaId).append("\n");
             resumen.append("• **Pedido ID:** ").append(pedidoId).append("\n");
             resumen.append("• **Dirección ID:** ").append(direccionId).append("\n");
-            resumen.append("• **Total:** $").append(String.format("%.2f", totalCarrito)).append("\n");
+            resumen.append("• **Total:** Bs").append(String.format("%.2f", totalCarrito)).append("\n");
             resumen.append("• **Método de pago:** ").append(metodoPago).append("\n");
             resumen.append("• **Estado:** Completada ✅\n\n");
             
@@ -2261,7 +1736,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             resumen.append("🛒 **Productos comprados:**\n");
             for (String[] detalle : detallesCarrito) {
-                resumen.append("• ").append(detalle[5]).append(" x").append(detalle[3]).append(" = $").append(detalle[4]).append("\n");
+                resumen.append("• ").append(detalle[5]).append(" x").append(detalle[3]).append(" = Bs").append(detalle[4]).append("\n");
             }
             resumen.append("\n");
             
@@ -2513,6 +1988,24 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             throw new SQLException("Usuario no encontrado para el email: " + email);
         }
+    }
+    
+    /**
+     * Valida si el método de pago es válido
+     */
+    private boolean esMetodoPagoValido(String metodoPago) {
+        if (metodoPago == null || metodoPago.trim().isEmpty()) {
+            return false;
+        }
+        
+        String metodo = metodoPago.toLowerCase().trim();
+        return metodo.equals("efectivo") || 
+               metodo.equals("tarjeta") || 
+               metodo.equals("transferencia") || 
+               metodo.equals("pago_movil") || 
+               metodo.equals("qr") || 
+               metodo.equals("paypal") || 
+               metodo.equals("bitcoin");
     }
 
 }

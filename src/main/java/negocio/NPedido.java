@@ -43,6 +43,13 @@ public class NPedido {
     }
     
     /**
+     * Obtiene pedidos por cliente (email)
+     */
+    public List<String[]> getByClienteEmail(String email) throws SQLException {
+        return dPedido.getByClienteEmail(email);
+    }
+    
+    /**
      * Crea un nuevo pedido con dirección
      */
     public List<String[]> crearPedido(String nombreDireccion, Double longitud, Double latitud, String referencia, double total) throws SQLException {

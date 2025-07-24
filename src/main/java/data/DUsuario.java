@@ -13,7 +13,7 @@ import postgresConecction.SqlConnection;
 
 public class DUsuario {
 
-    public static final String[] HEADERS = {"id", "nombre", "apellido", "telefono", "genero", "email", "password", "rol_id"};
+    public static final String[] HEADERS = {"id", "nombre", "celular", "email", "genero", "password", "estado", "created_at"};
 
     private final SqlConnection connection;
 
@@ -23,7 +23,7 @@ public class DUsuario {
 
     public List<String[]> get(int id) throws SQLException {
         List<String[]> usuario = new ArrayList<>();
-        String query = "SELECT * FROM usuarios WHERE id = ?";
+        String query = "SELECT * FROM \"user\" WHERE id = ?";
         try (Connection conn = connection.connect();
              PreparedStatement ps = conn.prepareStatement(query)) {
             ps.setInt(1, id);
@@ -32,12 +32,12 @@ public class DUsuario {
                 usuario.add(new String[]{
                         String.valueOf(set.getInt("id")),
                         set.getString("nombre"),
-                        set.getString("apellido"),
-                        set.getString("telefono"),
-                        set.getString("genero"),
+                        set.getString("celular"),
                         set.getString("email"),
+                        set.getString("genero"),
                         set.getString("password"),
-                        String.valueOf(set.getInt("rol_id"))
+                        set.getString("estado"),
+                        set.getString("created_at")
                 });
             } else {
                 throw new SQLException("Usuario no encontrado.");
@@ -50,19 +50,17 @@ public class DUsuario {
     }
 
 
-    public List<String[]> save(String nombre, String apellido, String telefono, String genero, String email, String password, int rol_id) throws SQLException {
+    public List<String[]> save(String nombre, String celular, String email, String genero, String password) throws SQLException {
         // Encripta la contraseña antes de guardarla
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-        String query = "INSERT INTO usuarios (nombre, apellido, telefono, genero, email, password, rol_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id";
+        String query = "INSERT INTO \"user\" (nombre, celular, email, genero, password, estado) VALUES (?, ?, ?, ?, ?, 'activo') RETURNING id";
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             ps.setString(1, nombre);
-            ps.setString(2, apellido);
-            ps.setString(3, telefono);
+            ps.setString(2, celular);
+            ps.setString(3, email);
             ps.setString(4, genero);
-            ps.setString(5, email);
-            ps.setString(6, hashedPassword);
-            ps.setInt(7, rol_id);
+            ps.setString(5, hashedPassword);
 
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -77,15 +75,14 @@ public class DUsuario {
         }
     }
 
-    public List<String[]> update(int id, String nombre, String apellido, String telefono, String genero, String email) throws SQLException {
-        String query = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, genero = ?, email = ? WHERE id = ?";
+    public List<String[]> update(int id, String nombre, String celular, String email, String genero) throws SQLException {
+        String query = "UPDATE \"user\" SET nombre = ?, celular = ?, email = ?, genero = ? WHERE id = ?";
         PreparedStatement ps = connection.connect().prepareStatement(query);
         ps.setString(1, nombre);
-        ps.setString(2, apellido);
-        ps.setString(3, telefono);
+        ps.setString(2, celular);
+        ps.setString(3, email);
         ps.setString(4, genero);
-        ps.setString(5, email);
-        ps.setInt(6, id);
+        ps.setInt(5, id);
 
         if(ps.executeUpdate() == 0) {
             System.err.println("Error al modificar el usuario");
@@ -95,7 +92,7 @@ public class DUsuario {
     }
 
     public List<String[]> delete(int id) throws SQLException {
-        String query = "DELETE FROM usuarios WHERE id = ?";
+        String query = "DELETE FROM \"user\" WHERE id = ?";
         PreparedStatement ps = connection.connect().prepareStatement(query);
         ps.setInt(1, id);
         if(ps.executeUpdate() == 0) {
@@ -107,7 +104,7 @@ public class DUsuario {
 
     public List<String[]> list() throws SQLException {
         List<String[]> usuarios = new ArrayList<>();
-        String query = "SELECT * FROM usuarios";
+        String query = "SELECT * FROM \"user\"";
         try (Connection conn = connection.connect();
              PreparedStatement ps = conn.prepareStatement(query)) {
             ResultSet set = ps.executeQuery();
@@ -115,12 +112,12 @@ public class DUsuario {
                 usuarios.add(new String[]{
                         String.valueOf(set.getInt("id")),
                         set.getString("nombre"),
-                        set.getString("apellido"),
-                        set.getString("telefono"),
-                        set.getString("genero"),
+                        set.getString("celular"),
                         set.getString("email"),
+                        set.getString("genero"),
                         set.getString("password"),
-                        String.valueOf(set.getInt("rol_id"))
+                        set.getString("estado"),
+                        set.getString("created_at")
                 });
             }
         } catch (SQLException e) {

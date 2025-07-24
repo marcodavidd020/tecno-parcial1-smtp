@@ -149,13 +149,37 @@ public class DDetalleCarrito {
      */
     public List<String[]> updateCantidad(int id, int cantidad) throws SQLException {
         List<String[]> detalles = new ArrayList<>();
-        String query = "UPDATE detalle_carrito SET cantidad = ?, subtotal = cantidad * precio_unitario, updated_at = CURRENT_TIMESTAMP " +
+        
+        // Primero obtener el precio_unitario actual
+        String getQuery = "SELECT precio_unitario FROM detalle_carrito WHERE id = ?";
+        double precioUnitario = 0.0;
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(getQuery)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    precioUnitario = rs.getBigDecimal("precio_unitario").doubleValue();
+                }
+            }
+        }
+        
+        // Calcular el subtotal manualmente
+        double subtotal = cantidad * precioUnitario;
+        
+        System.out.println("=== DEBUG UPDATE CANTIDAD ===");
+        System.out.println("ID: " + id);
+        System.out.println("Cantidad nueva: " + cantidad);
+        System.out.println("Precio unitario: " + precioUnitario);
+        System.out.println("Subtotal calculado: " + subtotal);
+        
+        String query = "UPDATE detalle_carrito SET cantidad = ?, subtotal = ?, updated_at = CURRENT_TIMESTAMP " +
                       "WHERE id = ? RETURNING id, carrito_id, producto_almacen_id, cantidad, precio_unitario, subtotal, created_at, updated_at";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
             ps.setInt(1, cantidad);
-            ps.setInt(2, id);
+            ps.setBigDecimal(2, java.math.BigDecimal.valueOf(subtotal));
+            ps.setInt(3, id);
             
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -169,6 +193,8 @@ public class DDetalleCarrito {
                         rs.getString("created_at"),
                         rs.getString("updated_at")
                     });
+                    
+                    System.out.println("Subtotal actualizado en BD: " + rs.getBigDecimal("subtotal"));
                 }
             }
         }

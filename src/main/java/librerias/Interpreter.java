@@ -59,35 +59,8 @@ public class Interpreter implements Runnable {
             case Token.USUARIO:
                 IcasoUsoListener.usuario(paramsAction);
                 break;
-            case Token.EVENTO:
-                IcasoUsoListener.evento(paramsAction);
-                break;
-            case Token.RESERVA:
-                IcasoUsoListener.reserva(paramsAction);
-                break;
-            case Token.PAGO:
-                IcasoUsoListener.pago(paramsAction);
-                break;
-            case Token.PROVEEDOR:
-                IcasoUsoListener.proveedor(paramsAction);
-                break;
             case Token.PROMOCION:
                 IcasoUsoListener.promocion(paramsAction);
-                break;
-            case Token.PATROCINADOR:
-                IcasoUsoListener.patrocinador(paramsAction);
-                break;
-            case Token.PATROCINIO:
-                IcasoUsoListener.patrocinio(paramsAction);
-                break;
-            case Token.ROL:
-                IcasoUsoListener.rol(paramsAction);
-                break;
-            case Token.SERVICIO:
-                IcasoUsoListener.servicio(paramsAction);
-                break;
-            case Token.DETALLEEVENTO:
-                IcasoUsoListener.detalleEvento(paramsAction);
                 break;
             case Token.HELP:
                 IcasoUsoListener.help(paramsAction);

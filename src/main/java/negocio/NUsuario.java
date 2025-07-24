@@ -24,41 +24,22 @@ public class NUsuario {
     }
 
     public  List<String[]> save(List<String> parametros) throws SQLException {
-//        dUsuario.save(
-//                parametros.get(0), // nombre
-//                parametros.get(1), // apellido
-//                parametros.get(2), // telefono
-//                parametros.get(3), // genero
-//                parametros.get(4), // email
-//                parametros.get(5), // password
-//                Integer.valueOf(parametros.get(6)) // rol_id
-//        );
-//        dUsuario.disconnect();
         return dUsuario.save(
                 parametros.get(0), // nombre
-                parametros.get(1), // apellido
-                parametros.get(2), // telefono
+                parametros.get(1), // celular
+                parametros.get(2), // email
                 parametros.get(3), // genero
-                parametros.get(4), // email
-                parametros.get(5), // password
-                Integer.valueOf(parametros.get(6)) // rol_id
+                parametros.get(4)  // password
         );
     }
 
     public List<String[]> update(List<String> parametros) throws SQLException {
-//        dUsuario.update(
-//                Integer.parseInt(parametros.get(0)), // id
-//                parametros.get(1), // nombre
-//                parametros.get(2)  // apellido
-//        );
-//        dUsuario.disconnect();
         return dUsuario.update(
                 Integer.parseInt(parametros.get(0)), // id
                 parametros.get(1), // nombre
-                parametros.get(2), // apellido
-                parametros.get(3), // telefono
-                parametros.get(4), // genero
-                parametros.get(5) // email
+                parametros.get(2), // celular
+                parametros.get(3), // email
+                parametros.get(4)  // genero
         );
     }
 
