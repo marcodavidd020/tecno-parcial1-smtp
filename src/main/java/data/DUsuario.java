@@ -13,7 +13,7 @@ import postgresConecction.SqlConnection;
 
 public class DUsuario {
 
-    public static final String[] HEADERS = {"id", "nombre", "celular", "email", "genero", "password", "estado", "created_at"};
+    public static final String[] HEADERS = {"id", "nombre", "celular", "email", "genero", "password", "estado"};
 
     private final SqlConnection connection;
 
@@ -36,8 +36,7 @@ public class DUsuario {
                         set.getString("email"),
                         set.getString("genero"),
                         set.getString("password"),
-                        set.getString("estado"),
-                        set.getString("created_at")
+                        set.getString("estado")
                 });
             } else {
                 throw new SQLException("Usuario no encontrado.");
@@ -116,8 +115,7 @@ public class DUsuario {
                         set.getString("email"),
                         set.getString("genero"),
                         set.getString("password"),
-                        set.getString("estado"),
-                        set.getString("created_at")
+                        set.getString("estado")
                 });
             }
         } catch (SQLException e) {
@@ -148,7 +146,7 @@ public class DUsuario {
             ResultSet rs = stmt.executeQuery();
             
             while (rs.next()) {
-                String[] row = new String[8]; // id, nombre, celular, email, genero, password, estado, created_at
+                String[] row = new String[7]; // id, nombre, celular, email, genero, password, estado
                 row[0] = String.valueOf(rs.getInt("id"));
                 row[1] = rs.getString("nombre");
                 row[2] = rs.getString("celular");
@@ -156,7 +154,6 @@ public class DUsuario {
                 row[4] = rs.getString("genero");
                 row[5] = rs.getString("password");
                 row[6] = rs.getString("estado");
-                row[7] = rs.getString("created_at");
                 result.add(row);
             }
         }

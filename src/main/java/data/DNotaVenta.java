@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DNotaVenta {
     
-    public static final String[] HEADERS = {"id", "cliente_id", "pedido_id", "fecha", "total", "estado", "observaciones", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "cliente_id", "pedido_id", "fecha", "total", "estado", "observaciones", "nit", "nombre", "email"};
     
     private final SqlConnection connection;
     
@@ -25,7 +25,6 @@ public class DNotaVenta {
     public List<String[]> getAll() throws SQLException {
         List<String[]> notasVenta = new ArrayList<>();
         String query = "SELECT nv.id, nv.cliente_id, nv.pedido_id, nv.fecha, nv.total, nv.estado, nv.observaciones, " +
-                      "nv.created_at, nv.updated_at, " +
                       "c.nit, u.nombre, u.email " +
                       "FROM nota_venta nv " +
                       "INNER JOIN cliente c ON nv.cliente_id = c.id " +
@@ -46,9 +45,7 @@ public class DNotaVenta {
                     rs.getString("observaciones"),
                     rs.getString("nit"),
                     rs.getString("nombre"),
-                    rs.getString("email"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
+                    rs.getString("email")
                 });
             }
         }
@@ -62,7 +59,6 @@ public class DNotaVenta {
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> notasVenta = new ArrayList<>();
         String query = "SELECT nv.id, nv.cliente_id, nv.pedido_id, nv.fecha, nv.total, nv.estado, nv.observaciones, " +
-                      "nv.created_at, nv.updated_at, " +
                       "c.nit, u.nombre, u.email " +
                       "FROM nota_venta nv " +
                       "INNER JOIN cliente c ON nv.cliente_id = c.id " +
@@ -85,9 +81,7 @@ public class DNotaVenta {
                         rs.getString("observaciones"),
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                 }
             }
@@ -102,7 +96,6 @@ public class DNotaVenta {
     public List<String[]> getByClienteId(int clienteId) throws SQLException {
         List<String[]> notasVenta = new ArrayList<>();
         String query = "SELECT nv.id, nv.cliente_id, nv.pedido_id, nv.fecha, nv.total, nv.estado, nv.observaciones, " +
-                      "nv.created_at, nv.updated_at, " +
                       "c.nit, u.nombre, u.email " +
                       "FROM nota_venta nv " +
                       "INNER JOIN cliente c ON nv.cliente_id = c.id " +
@@ -126,9 +119,7 @@ public class DNotaVenta {
                         rs.getString("observaciones"),
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                 }
             }
@@ -144,7 +135,7 @@ public class DNotaVenta {
         List<String[]> notasVenta = new ArrayList<>();
         String query = "INSERT INTO nota_venta (cliente_id, pedido_id, fecha, total, estado, observaciones) " +
                       "VALUES (?, ?, ?, ?, ?, ?) " +
-                      "RETURNING id, cliente_id, pedido_id, fecha, total, estado, observaciones, created_at, updated_at";
+                      "RETURNING id, cliente_id, pedido_id, fecha, total, estado, observaciones";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -173,9 +164,7 @@ public class DNotaVenta {
                         rs.getString("fecha"),
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("estado"),
-                        rs.getString("observaciones"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("observaciones")
                     });
                 }
             }
@@ -189,9 +178,9 @@ public class DNotaVenta {
      */
     public List<String[]> update(int id, String estado, String observaciones) throws SQLException {
         List<String[]> notasVenta = new ArrayList<>();
-        String query = "UPDATE nota_venta SET estado = ?, observaciones = ?, updated_at = CURRENT_TIMESTAMP " +
+        String query = "UPDATE nota_venta SET estado = ?, observaciones = ? " +
                       "WHERE id = ? " +
-                      "RETURNING id, cliente_id, pedido_id, fecha, total, estado, observaciones, created_at, updated_at";
+                      "RETURNING id, cliente_id, pedido_id, fecha, total, estado, observaciones";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -208,9 +197,7 @@ public class DNotaVenta {
                         rs.getString("fecha"),
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("estado"),
-                        rs.getString("observaciones"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("observaciones")
                     });
                 }
             }

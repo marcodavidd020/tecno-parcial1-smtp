@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DDetalleCarrito {
     
-    public static final String[] HEADERS = {"id", "carrito_id", "producto_almacen_id", "cantidad", "precio_unitario", "subtotal", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "carrito_id", "producto_almacen_id", "cantidad", "precio_unitario", "subtotal", "producto_nombre", "producto_descripcion", "stock", "precio_venta"};
     
     private final SqlConnection connection;
     
@@ -25,14 +25,13 @@ public class DDetalleCarrito {
     public List<String[]> getByCarritoId(int carritoId) throws SQLException {
         List<String[]> detalles = new ArrayList<>();
         String query = "SELECT dc.id, dc.carrito_id, dc.producto_almacen_id, dc.cantidad, dc.precio_unitario, dc.subtotal, " +
-                      "dc.created_at, dc.updated_at, " +
                       "p.nombre as producto_nombre, p.descripcion as producto_descripcion, " +
                       "pa.stock, p.precio_venta " +
                       "FROM detalle_carrito dc " +
                       "INNER JOIN producto_almacen pa ON dc.producto_almacen_id = pa.id " +
                       "INNER JOIN producto p ON pa.producto_id = p.id " +
                       "WHERE dc.carrito_id = ? " +
-                      "ORDER BY dc.created_at DESC";
+                      "ORDER BY dc.id DESC";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -50,9 +49,7 @@ public class DDetalleCarrito {
                         rs.getString("producto_nombre"),
                         rs.getString("producto_descripcion"),
                         String.valueOf(rs.getInt("stock")),
-                        String.valueOf(rs.getBigDecimal("precio_venta")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getBigDecimal("precio_venta"))
                     });
                 }
             }
@@ -67,7 +64,6 @@ public class DDetalleCarrito {
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> detalles = new ArrayList<>();
         String query = "SELECT dc.id, dc.carrito_id, dc.producto_almacen_id, dc.cantidad, dc.precio_unitario, dc.subtotal, " +
-                      "dc.created_at, dc.updated_at, " +
                       "p.nombre as producto_nombre, p.descripcion as producto_descripcion, " +
                       "pa.stock, p.precio_venta " +
                       "FROM detalle_carrito dc " +
@@ -91,9 +87,7 @@ public class DDetalleCarrito {
                         rs.getString("producto_nombre"),
                         rs.getString("producto_descripcion"),
                         String.valueOf(rs.getInt("stock")),
-                        String.valueOf(rs.getBigDecimal("precio_venta")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getBigDecimal("precio_venta"))
                     });
                 }
             }
@@ -113,9 +107,8 @@ public class DDetalleCarrito {
                       "VALUES (?, ?, ?, ?, ?) " +
                       "ON CONFLICT (carrito_id, producto_almacen_id) " +
                       "DO UPDATE SET cantidad = detalle_carrito.cantidad + EXCLUDED.cantidad, " +
-                      "subtotal = (detalle_carrito.cantidad + EXCLUDED.cantidad) * detalle_carrito.precio_unitario, " +
-                      "updated_at = CURRENT_TIMESTAMP " +
-                      "RETURNING id, carrito_id, producto_almacen_id, cantidad, precio_unitario, subtotal, created_at, updated_at";
+                      "subtotal = (detalle_carrito.cantidad + EXCLUDED.cantidad) * detalle_carrito.precio_unitario " +
+                      "RETURNING id, carrito_id, producto_almacen_id, cantidad, precio_unitario, subtotal";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -133,9 +126,7 @@ public class DDetalleCarrito {
                         String.valueOf(rs.getInt("producto_almacen_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("precio_unitario")),
-                        String.valueOf(rs.getBigDecimal("subtotal")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getBigDecimal("subtotal"))
                     });
                 }
             }
@@ -172,8 +163,8 @@ public class DDetalleCarrito {
         System.out.println("Precio unitario: " + precioUnitario);
         System.out.println("Subtotal calculado: " + subtotal);
         
-        String query = "UPDATE detalle_carrito SET cantidad = ?, subtotal = ?, updated_at = CURRENT_TIMESTAMP " +
-                      "WHERE id = ? RETURNING id, carrito_id, producto_almacen_id, cantidad, precio_unitario, subtotal, created_at, updated_at";
+        String query = "UPDATE detalle_carrito SET cantidad = ?, subtotal = ? " +
+                      "WHERE id = ? RETURNING id, carrito_id, producto_almacen_id, cantidad, precio_unitario, subtotal";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -189,9 +180,7 @@ public class DDetalleCarrito {
                         String.valueOf(rs.getInt("producto_almacen_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("precio_unitario")),
-                        String.valueOf(rs.getBigDecimal("subtotal")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getBigDecimal("subtotal"))
                     });
                     
                     System.out.println("Subtotal actualizado en BD: " + rs.getBigDecimal("subtotal"));

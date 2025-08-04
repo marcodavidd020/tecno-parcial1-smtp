@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DCliente {
     
-    public static final String[] HEADERS = {"id", "nit", "user_id", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "nit", "user_id", "nombre", "email", "celular", "genero"};
     
     private final SqlConnection connection;
     
@@ -24,7 +24,7 @@ public class DCliente {
      */
     public List<String[]> getAll() throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "SELECT c.id, c.nit, c.user_id, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.nit, c.user_id, " +
                       "u.nombre, u.celular, u.email, u.genero " +
                       "FROM cliente c " +
                       "INNER JOIN \"user\" u ON c.user_id = u.id " +
@@ -41,9 +41,7 @@ public class DCliente {
                     rs.getString("nombre"),
                     rs.getString("email"),
                     rs.getString("celular"),
-                    rs.getString("genero"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
+                    rs.getString("genero")
                 });
             }
         }
@@ -56,7 +54,7 @@ public class DCliente {
      */
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "SELECT c.id, c.nit, c.user_id, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.nit, c.user_id, " +
                       "u.nombre, u.celular, u.email, u.genero " +
                       "FROM cliente c " +
                       "INNER JOIN \"user\" u ON c.user_id = u.id " +
@@ -75,9 +73,7 @@ public class DCliente {
                         rs.getString("nombre"),
                         rs.getString("email"),
                         rs.getString("celular"),
-                        rs.getString("genero"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("genero")
                     });
                 }
             }
@@ -91,7 +87,7 @@ public class DCliente {
      */
     public List<String[]> getByNit(String nit) throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "SELECT c.id, c.nit, c.user_id, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.nit, c.user_id, " +
                       "u.nombre, u.celular, u.email, u.genero " +
                       "FROM cliente c " +
                       "INNER JOIN \"user\" u ON c.user_id = u.id " +
@@ -110,9 +106,7 @@ public class DCliente {
                         rs.getString("nombre"),
                         rs.getString("email"),
                         rs.getString("celular"),
-                        rs.getString("genero"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("genero")
                     });
                 }
             }
@@ -126,7 +120,7 @@ public class DCliente {
      */
     public List<String[]> getByUserId(int userId) throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "SELECT c.id, c.nit, c.user_id, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.nit, c.user_id, " +
                       "u.nombre, u.celular, u.email, u.genero " +
                       "FROM cliente c " +
                       "INNER JOIN \"user\" u ON c.user_id = u.id " +
@@ -145,9 +139,7 @@ public class DCliente {
                         rs.getString("nombre"),
                         rs.getString("email"),
                         rs.getString("celular"),
-                        rs.getString("genero"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("genero")
                     });
                 }
             }
@@ -161,7 +153,7 @@ public class DCliente {
      */
     public List<String[]> save(String nit, int userId) throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "INSERT INTO cliente (nit, user_id) VALUES (?, ?) RETURNING id, nit, user_id, created_at, updated_at";
+        String query = "INSERT INTO cliente (nit, user_id) VALUES (?, ?) RETURNING id, nit, user_id";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -173,9 +165,7 @@ public class DCliente {
                     clientes.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         rs.getString("nit"),
-                        String.valueOf(rs.getInt("user_id")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getInt("user_id"))
                     });
                 }
             }
@@ -189,7 +179,7 @@ public class DCliente {
      */
     public List<String[]> update(int id, String nit) throws SQLException {
         List<String[]> clientes = new ArrayList<>();
-        String query = "UPDATE cliente SET nit = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING id, nit, user_id, created_at, updated_at";
+        String query = "UPDATE cliente SET nit = ? WHERE id = ? RETURNING id, nit, user_id";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -201,9 +191,7 @@ public class DCliente {
                     clientes.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         rs.getString("nit"),
-                        String.valueOf(rs.getInt("user_id")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getInt("user_id"))
                     });
                 }
             }

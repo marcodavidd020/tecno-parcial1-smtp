@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DCarrito {
     
-    public static final String[] HEADERS = {"id", "cliente_id", "fecha", "total", "estado", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "cliente_id", "fecha", "total", "estado", "nit", "nombre", "email"};
     
     private final SqlConnection connection;
     
@@ -26,7 +26,7 @@ public class DCarrito {
         List<String[]> carritos = new ArrayList<>();
         
         // Primero, buscar un carrito activo que tenga productos
-        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, " +
                       "cl.nit, u.nombre, u.email, " +
                       "COUNT(dc.id) as productos_count " +
                       "FROM carrito c " +
@@ -34,10 +34,10 @@ public class DCarrito {
                       "INNER JOIN \"user\" u ON cl.user_id = u.id " +
                       "LEFT JOIN detalle_carrito dc ON c.id = dc.carrito_id " +
                       "WHERE c.cliente_id = ? AND c.estado = 'activo' " +
-                      "GROUP BY c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+                      "GROUP BY c.id, c.cliente_id, c.fecha, c.total, c.estado, " +
                       "cl.nit, u.nombre, u.email " +
                       "HAVING COUNT(dc.id) > 0 " +
-                      "ORDER BY c.created_at DESC " +
+                      "ORDER BY c.id DESC " +
                       "LIMIT 1";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
@@ -55,9 +55,7 @@ public class DCarrito {
                         rs.getString("estado"),
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                     return carritos;
                 }
@@ -65,13 +63,13 @@ public class DCarrito {
         }
         
         // Si no hay carrito activo con productos, buscar el último carrito del cliente
-        query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+        query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, " +
                 "cl.nit, u.nombre, u.email " +
                 "FROM carrito c " +
                 "INNER JOIN cliente cl ON c.cliente_id = cl.id " +
                 "INNER JOIN \"user\" u ON cl.user_id = u.id " +
                 "WHERE c.cliente_id = ? " +
-                "ORDER BY c.created_at DESC " +
+                "ORDER BY c.id DESC " +
                 "LIMIT 1";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
@@ -99,9 +97,7 @@ public class DCarrito {
                         estado,
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                 } else {
                     // No existe carrito, crear uno nuevo
@@ -118,7 +114,7 @@ public class DCarrito {
      */
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
-        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, " +
                       "cl.nit, u.nombre, u.email " +
                       "FROM carrito c " +
                       "INNER JOIN cliente cl ON c.cliente_id = cl.id " +
@@ -139,9 +135,7 @@ public class DCarrito {
                         rs.getString("estado"),
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                 }
             }
@@ -155,13 +149,13 @@ public class DCarrito {
      */
     public List<String[]> getByClienteId(int clienteId) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
-        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, c.created_at, c.updated_at, " +
+        String query = "SELECT c.id, c.cliente_id, c.fecha, c.total, c.estado, " +
                       "cl.nit, u.nombre, u.email " +
                       "FROM carrito c " +
                       "INNER JOIN cliente cl ON c.cliente_id = cl.id " +
                       "INNER JOIN \"user\" u ON cl.user_id = u.id " +
                       "WHERE c.cliente_id = ? " +
-                      "ORDER BY c.created_at DESC";
+                      "ORDER BY c.id DESC";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -177,9 +171,7 @@ public class DCarrito {
                         rs.getString("estado"),
                         rs.getString("nit"),
                         rs.getString("nombre"),
-                        rs.getString("email"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("email")
                     });
                 }
             }
@@ -194,7 +186,7 @@ public class DCarrito {
     private List<String[]> crearNuevoCarrito(int clienteId) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
         String query = "INSERT INTO carrito (cliente_id, fecha, total, estado) VALUES (?, CURRENT_DATE, 0, 'activo') " +
-                      "RETURNING id, cliente_id, fecha, total, estado, created_at, updated_at";
+                      "RETURNING id";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -215,7 +207,7 @@ public class DCarrito {
      * Activa un carrito abandonado
      */
     private void activarCarrito(int carritoId) throws SQLException {
-        String query = "UPDATE carrito SET estado = 'activo', updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        String query = "UPDATE carrito SET estado = 'activo' WHERE id = ?";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -229,7 +221,7 @@ public class DCarrito {
      */
     public List<String[]> updateTotal(int carritoId, double total) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
-        String query = "UPDATE carrito SET total = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING id, cliente_id, fecha, total, estado, created_at, updated_at";
+        String query = "UPDATE carrito SET total = ? WHERE id = ? RETURNING id, cliente_id, fecha, total, estado";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -243,9 +235,7 @@ public class DCarrito {
                         String.valueOf(rs.getInt("cliente_id")),
                         rs.getString("fecha"),
                         String.valueOf(rs.getBigDecimal("total")),
-                        rs.getString("estado"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("estado")
                     });
                 }
             }
@@ -259,7 +249,7 @@ public class DCarrito {
      */
     public List<String[]> updateEstado(int carritoId, String estado) throws SQLException {
         List<String[]> carritos = new ArrayList<>();
-        String query = "UPDATE carrito SET estado = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING id, cliente_id, fecha, total, estado, created_at, updated_at";
+        String query = "UPDATE carrito SET estado = ? WHERE id = ? RETURNING id, cliente_id, fecha, total, estado";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -273,9 +263,7 @@ public class DCarrito {
                         String.valueOf(rs.getInt("cliente_id")),
                         rs.getString("fecha"),
                         String.valueOf(rs.getBigDecimal("total")),
-                        rs.getString("estado"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("estado")
                     });
                 }
             }

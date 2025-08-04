@@ -364,6 +364,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         
         // Comandos de Productos
         data.add(new String[]{"Productos", "producto get", "Obtiene todos los productos"});
+        data.add(new String[]{"Productos", "producto get id &lt;producto_id&gt;", "Obtiene un producto específico por ID"});
+        data.add(new String[]{"Productos", "producto get categoria &lt;categoria_id&gt;", "Obtiene productos de una categoría específica"});
         
         // Comandos de Tipos de Pago
         data.add(new String[]{"Tipos de Pago", "tipopago get", "Obtiene todos los tipos de pago"});
@@ -379,8 +381,11 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
 
         // Sistema de Ventas
         data.add(new String[]{"Nota de Venta", "notaventa get", "Obtiene mis notas de venta"});
+        data.add(new String[]{"Nota de Venta", "notaventa get &lt;id&gt;", "Obtiene una nota de venta específica"});
+        data.add(new String[]{"Nota de Venta", "notaventa productos &lt;id&gt;", "Ver productos comprados en una nota de venta"});
 
         data.add(new String[]{"Pedido", "pedido get", "Obtiene mis pedidos"});
+        data.add(new String[]{"Pedido", "pedido get &lt;id&gt;", "Obtiene un pedido específico"});
 
         data.add(new String[]{"Dirección", "direccion get", "Obtiene todas las direcciones"});
 
@@ -659,23 +664,119 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         try {
             switch (event.getAction()) {
                 case Token.GET:
-                    if (event.getParams() != null && event.getParams().size() >= 1) {
-                        // Comando: producto get <id>
-                        int id = Integer.parseInt(event.getParams().get(0));
-                        List<String[]> productoData = nProducto.getById(id);
+                    // Headers amigables para el cliente (sin precio_compra e imagen)
+                    String[] clienteHeaders = {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"};
+                    
+                    if (event.getParams() != null && event.getParams().size() >= 2) {
+                        String subcomando = event.getParams().get(0).toLowerCase();
                         
-                        if (!productoData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Producto encontrado", DProducto.HEADERS, (ArrayList<String[]>) productoData, event.getCommand());
+                        if ("id".equals(subcomando)) {
+                            // Comando: producto get id <producto_id>
+                            try {
+                                int productoId = Integer.parseInt(event.getParams().get(1));
+                                List<String[]> productoData = nProducto.getById(productoId);
+                                
+                                if (!productoData.isEmpty()) {
+                                    // Filtrar datos para el cliente
+                                    List<String[]> productosCliente = filtrarDatosParaCliente(productoData);
+                                    
+                                    tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
+                                        clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                                    
+                                    // Mensaje informativo para producto específico
+                                    simpleNotify(event.getSender(), "💡 Consejo", 
+                                        "🛒 **Para agregar este producto al carrito:**\n\n" +
+                                        "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
+                                        "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
+                                        "🔙 **Ver más productos:**\n" +
+                                        "• `producto get` - Ver catálogo completo\n" +
+                                        "• `producto get categoria <categoria_id>` - Ver por categoría");
+                                    
+                                } else {
+                                    simpleNotify(event.getSender(), "Producto no encontrado", 
+                                        "❌ **No se encontró el producto con ID: " + productoId + "**\n\n" +
+                                        "🔍 **Sugerencias:**\n" +
+                                        "• `producto get` - Ver todos los productos disponibles\n" +
+                                        "• `categoria get` - Ver categorías disponibles");
+                                }
+                                
+                            } catch (NumberFormatException e) {
+                                simpleNotify(event.getSender(), "ID inválido", 
+                                    "❌ **El ID del producto debe ser un número válido.**\n\n" +
+                                    "📋 **Uso correcto:** `producto get id <numero>`\n" +
+                                    "📝 **Ejemplo:** `producto get id 1`");
+                            }
+                            
+                        } else if ("categoria".equals(subcomando)) {
+                            // Comando: producto get categoria <categoria_id>
+                            try {
+                                int categoriaId = Integer.parseInt(event.getParams().get(1));
+                                List<String[]> productosData = nProducto.getByCategoria(categoriaId);
+                                
+                                if (!productosData.isEmpty()) {
+                                    // Filtrar datos para el cliente
+                                    List<String[]> productosCliente = filtrarDatosParaCliente(productosData);
+                                    
+                                    // Obtener nombre de la categoría para el título
+                                    String nombreCategoria = productosData.get(0)[7];
+                                    
+                                    tableNotifySuccess(event.getSender(), "📦 Productos - Categoría: " + nombreCategoria, 
+                                        clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                                    
+                                    // Mensaje informativo específico para categoría
+                                    mostrarMensajeInformativo(event.getSender(), true);
+                                    
+                                } else {
+                                    simpleNotify(event.getSender(), "Sin productos en esta categoría", 
+                                        "❌ **No hay productos registrados en la categoría con ID: " + categoriaId + "**\n\n" +
+                                        "📋 **Para ver todas las categorías disponibles:**\n" +
+                                        "categoria get");
+                                }
+                                
+                            } catch (NumberFormatException e) {
+                                simpleNotify(event.getSender(), "ID inválido", 
+                                    "❌ **El ID de categoría debe ser un número válido.**\n\n" +
+                                    "📋 **Uso correcto:** `producto get categoria <numero>`\n" +
+                                    "📝 **Ejemplo:** `producto get categoria 1`");
+                            }
+                            
                         } else {
-                            simpleNotify(event.getSender(), "Producto no encontrado", 
-                                "❌ **No se encontró el producto con ID: " + id + "**");
+                            // Comando no reconocido
+                            simpleNotify(event.getSender(), "Comando no reconocido", 
+                                "❌ **Subcomando no válido: " + subcomando + "**\n\n" +
+                                "📋 **Comandos disponibles:**\n" +
+                                "• `producto get` - Ver todos los productos\n" +
+                                "• `producto get id <producto_id>` - Ver producto específico\n" +
+                                "• `producto get categoria <categoria_id>` - Ver productos por categoría\n\n" +
+                                "💡 **Para ver categorías:** `categoria get`");
                         }
+                        
+                    } else if (event.getParams() != null && event.getParams().size() == 1) {
+                        // Comando con un solo parámetro - mostrar ayuda
+                        simpleNotify(event.getSender(), "Parámetros incompletos", 
+                            "❌ **Faltan parámetros.**\n\n" +
+                            "📋 **Uso correcto:**\n" +
+                            "• `producto get` - Ver todos los productos\n" +
+                            "• `producto get id <producto_id>` - Ver producto específico\n" +
+                            "• `producto get categoria <categoria_id>` - Ver productos por categoría\n\n" +
+                            "📝 **Ejemplos:**\n" +
+                            "• `producto get id 1`\n" +
+                            "• `producto get categoria 2`");
+                            
                     } else {
                         // Comando: producto get (todos los productos)
                         List<String[]> productosData = nProducto.getAll();
                         
                         if (!productosData.isEmpty()) {
-                            tableNotifySuccess(event.getSender(), "Lista de Productos", DProducto.HEADERS, (ArrayList<String[]>) productosData, event.getCommand());
+                            // Filtrar datos para el cliente (quitar precio_compra e imagen)
+                            List<String[]> productosCliente = filtrarDatosParaCliente(productosData);
+                            
+                            tableNotifySuccess(event.getSender(), "📦 Catálogo de Productos", 
+                                clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                            
+                            // Mensaje informativo general
+                            mostrarMensajeInformativo(event.getSender(), false);
+                            
                         } else {
                             simpleNotify(event.getSender(), "No hay productos", 
                                 "📝 **No hay productos registrados en el sistema.**");
@@ -1110,6 +1211,75 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             System.out.println("Action: " + event.getAction());
             System.out.println("Params: " + event.getParams());
             
+            // Comando especial: notaventa productos <id>
+            if (event.getParams() != null && event.getParams().size() >= 2 && 
+                "productos".equals(event.getParams().get(0).toLowerCase())) {
+                
+                try {
+                    int notaVentaId = Integer.parseInt(event.getParams().get(1));
+                    
+                    // Verificar que la nota de venta existe y pertenece al usuario
+                    List<String[]> notaVentaData = nNotaVenta.getById(notaVentaId);
+                    if (notaVentaData.isEmpty()) {
+                        simpleNotify(event.getSender(), "Nota de venta no encontrada", 
+                            "❌ **No se encontró la nota de venta con ID: " + notaVentaId + "**");
+                        return;
+                    }
+                    
+                    // Obtener productos de la nota de venta
+                    DDetalleVenta dDetalleVenta = new DDetalleVenta();
+                    List<String[]> productosData = dDetalleVenta.getByNotaVentaId(notaVentaId);
+                    
+                    if (!productosData.isEmpty()) {
+                        // Headers amigables para productos de nota de venta
+                        String[] productosHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Total", "Producto", "Descripción", "Precio Unitario", "Stock"};
+                        
+                        // Filtrar datos para el cliente (quitar nota_venta_id)
+                        List<String[]> productosCliente = new ArrayList<>();
+                        for (String[] producto : productosData) {
+                            productosCliente.add(new String[]{
+                                producto[0], // id → Detalle ID
+                                producto[2], // producto_almacen_id → Producto ID
+                                producto[3], // cantidad → Cantidad
+                                producto[4], // total → Total
+                                producto[5], // producto_nombre → Producto
+                                producto[6], // producto_descripcion → Descripción
+                                producto[7], // precio_venta → Precio Unitario
+                                producto[8]  // stock → Stock
+                            });
+                        }
+                        
+                        tableNotifySuccess(event.getSender(), "📦 Productos - Nota de Venta ID: " + notaVentaId, 
+                            productosHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                        
+                        // Información adicional sobre la nota de venta
+                        String[] notaInfo = notaVentaData.get(0);
+                        simpleNotify(event.getSender(), "ℹ️ Detalles de la Compra", 
+                            "📋 **Información de la nota de venta:**\n\n" +
+                            "🆔 **ID:** " + notaInfo[0] + "\n" +
+                            "📅 **Fecha:** " + notaInfo[3] + "\n" +
+                            "💰 **Total:** Bs" + notaInfo[4] + "\n" +
+                            "📋 **Estado:** " + notaInfo[5] + "\n" +
+                            "📝 **Observaciones:** " + notaInfo[6] + "\n\n" +
+                            "🔙 **Comandos relacionados:**\n" +
+                            "• `notaventa get " + notaVentaId + "` - Ver detalles completos\n" +
+                            "• `notaventa get` - Ver todas mis notas de venta");
+                        
+                    } else {
+                        simpleNotify(event.getSender(), "Sin productos", 
+                            "❌ **Esta nota de venta no tiene productos registrados.**");
+                    }
+                    
+                } catch (NumberFormatException e) {
+                    simpleNotify(event.getSender(), "ID inválido", 
+                        "❌ **El ID de la nota de venta debe ser un número válido.**\n\n" +
+                        "📋 **Uso correcto:** `notaventa productos <numero>`\n" +
+                        "📝 **Ejemplo:** `notaventa productos 1`");
+                }
+                
+                return; // Salir del método después de manejar el comando productos
+            }
+            
             switch (event.getAction()) {
                 case Token.GET:
                     if (event.getParams() != null && event.getParams().size() >= 1) {
@@ -1121,8 +1291,35 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             List<String[]> notaVentaData = nNotaVenta.getById(id);
                             
                             if (!notaVentaData.isEmpty()) {
-                                String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Nombre", "Email", "Creado", "Actualizado"};
-                                tableNotifySuccess(event.getSender(), "Nota de Venta encontrada", enhancedHeaders, (ArrayList<String[]>) notaVentaData, event.getCommand());
+                                // Headers amigables para el cliente (sin cliente_id)
+                                String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Cliente", "Email"};
+                                
+                                // Filtrar datos para el cliente (quitar cliente_id)
+                                List<String[]> notaVentaCliente = new ArrayList<>();
+                                for (String[] nota : notaVentaData) {
+                                    notaVentaCliente.add(new String[]{
+                                        nota[0], // id → ID
+                                        nota[2], // pedido_id → Pedido ID  
+                                        nota[3], // fecha → Fecha
+                                        nota[4], // total → Total
+                                        nota[5], // estado → Estado
+                                        nota[6], // observaciones → Observaciones
+                                        nota[7], // nit → NIT
+                                        nota[8], // nombre → Cliente
+                                        nota[9]  // email → Email
+                                    });
+                                }
+                                
+                                tableNotifySuccess(event.getSender(), "🧾 Nota de Venta ID: " + id, clienteHeaders, (ArrayList<String[]>) notaVentaCliente, event.getCommand());
+                                
+                                // Agregar mensaje informativo sobre ver productos
+                                simpleNotify(event.getSender(), "💡 Información Adicional", 
+                                    "📦 **Para ver los productos comprados en esta nota de venta:**\n\n" +
+                                    "📌 **Comando:** `notaventa productos " + id + "`\n\n" +
+                                    "ℹ️ **Otros comandos útiles:**\n" +
+                                    "• `notaventa get` - Ver todas mis notas de venta\n" +
+                                    "• `pedido get` - Ver mis pedidos");
+                                
                             } else {
                                 simpleNotify(event.getSender(), "Nota de Venta no encontrada", 
                                     "❌ **No se encontró la nota de venta con ID: " + id + "**");
@@ -1136,11 +1333,41 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         List<String[]> notasVenta = nNotaVenta.getByClienteEmail(event.getSender());
                         
                         if (!notasVenta.isEmpty()) {
-                            String[] enhancedHeaders = {"ID", "Cliente ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Nombre", "Email", "Creado", "Actualizado"};
-                            tableNotifySuccess(event.getSender(), "Mis Notas de Venta", enhancedHeaders, (ArrayList<String[]>) notasVenta, event.getCommand());
+                            // Headers amigables para el cliente (sin cliente_id)
+                            String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Cliente", "Email"};
+                            
+                            // Filtrar datos para el cliente (quitar cliente_id)
+                            List<String[]> notasVentaCliente = new ArrayList<>();
+                            for (String[] nota : notasVenta) {
+                                notasVentaCliente.add(new String[]{
+                                    nota[0], // id → ID
+                                    nota[2], // pedido_id → Pedido ID  
+                                    nota[3], // fecha → Fecha
+                                    nota[4], // total → Total
+                                    nota[5], // estado → Estado
+                                    nota[6], // observaciones → Observaciones
+                                    nota[7], // nit → NIT
+                                    nota[8], // nombre → Cliente
+                                    nota[9]  // email → Email
+                                });
+                            }
+                            
+                            tableNotifySuccess(event.getSender(), "🧾 Mis Notas de Venta", clienteHeaders, (ArrayList<String[]>) notasVentaCliente, event.getCommand());
+                            
+                            // Mensaje informativo sobre ver productos de cada nota
+                            simpleNotify(event.getSender(), "💡 Consejo", 
+                                "📦 **Para ver los productos de una nota de venta específica:**\n\n" +
+                                "📌 **Comando:** `notaventa productos <id>`\n\n" +
+                                "📝 **Ejemplo:** `notaventa productos 1` (ve productos de la nota ID 1)\n\n" +
+                                "ℹ️ **Otros comandos útiles:**\n" +
+                                "• `notaventa get <id>` - Ver detalles de una nota específica\n" +
+                                "• `pedido get` - Ver mis pedidos");
                         } else {
                             simpleNotify(event.getSender(), "Sin notas de venta", 
-                                "📋 **No tienes notas de venta registradas**");
+                                "📋 **No tienes notas de venta registradas**\n\n" +
+                                "🛒 **Para crear una compra:**\n" +
+                                "1. Agrega productos al carrito: `carrito add <producto_id, cantidad>`\n" +
+                                "2. Realiza la compra: `comprar <tipo_pago_id, url_google_maps>`");
                         }
                     }
                     break;
@@ -1270,8 +1497,35 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             List<String[]> pedidoData = nPedido.getById(id);
                             
                             if (!pedidoData.isEmpty()) {
-                                String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Nombre Dirección", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
-                                tableNotifySuccess(event.getSender(), "Pedido encontrado", enhancedHeaders, (ArrayList<String[]>) pedidoData, event.getCommand());
+                                String[] pedidoInfo = pedidoData.get(0);
+                                
+                                // Determinar estado de entrega más claro
+                                String estadoEntrega = determinarEstadoEntrega(pedidoInfo[4], pedidoInfo[5], pedidoInfo[6]);
+                                
+                                // Headers simplificados y claros para el cliente
+                                String[] clienteHeaders = {"Pedido #", "Fecha Pedido", "Total", "Estado", "Entrega"};
+                                
+                                // Datos simplificados centrados en lo que el cliente necesita
+                                List<String[]> pedidoCliente = new ArrayList<>();
+                                pedidoCliente.add(new String[]{
+                                    "#" + pedidoInfo[0], // id → Pedido #
+                                    pedidoInfo[2], // fecha → Fecha Pedido
+                                    "Bs" + pedidoInfo[3], // total → Total (con moneda)
+                                    capitalizarEstado(pedidoInfo[4]), // estado → Estado
+                                    estadoEntrega // estado de entrega más claro
+                                });
+                                
+                                tableNotifySuccess(event.getSender(), "🚚 Detalles del Pedido", clienteHeaders, (ArrayList<String[]>) pedidoCliente, event.getCommand());
+                                
+                                // Información de entrega más clara y relevante
+                                simpleNotify(event.getSender(), "📍 Información de Entrega", 
+                                    "🏠 **Dirección:** " + pedidoInfo[7] + "\n" +
+                                    "📝 **Referencia:** " + (pedidoInfo[10] != null && !pedidoInfo[10].trim().isEmpty() ? pedidoInfo[10] : "Sin referencia específica") + "\n\n" +
+                                    "📊 **Estado del pedido:** " + obtenerDescripcionEstado(pedidoInfo[4]) + "\n\n" +
+                                    "ℹ️ **Comandos relacionados:**\n" +
+                                    "• `pedido get` - Ver todos mis pedidos\n" +
+                                    "• `notaventa get` - Ver mis notas de venta relacionadas");
+                                
                             } else {
                                 simpleNotify(event.getSender(), "Pedido no encontrado", 
                                     "❌ **No se encontró el pedido con ID: " + id + "**");
@@ -1285,11 +1539,43 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         List<String[]> pedidos = nPedido.getByClienteEmail(event.getSender());
                         
                         if (!pedidos.isEmpty()) {
-                            String[] enhancedHeaders = {"ID", "Dirección ID", "Fecha", "Total", "Estado", "Fecha Envío", "Fecha Entrega", "Nombre Dirección", "Longitud", "Latitud", "Referencia", "Creado", "Actualizado"};
-                            tableNotifySuccess(event.getSender(), "Mis Pedidos", enhancedHeaders, (ArrayList<String[]>) pedidos, event.getCommand());
+                            // Headers simplificados y claros para el cliente
+                            String[] clienteHeaders = {"Pedido #", "Fecha", "Total", "Estado", "Dirección"};
+                            
+                            // Datos simplificados centrados en lo que el cliente necesita
+                            List<String[]> pedidosCliente = new ArrayList<>();
+                            for (String[] pedido : pedidos) {
+                                pedidosCliente.add(new String[]{
+                                    "#" + pedido[0], // id → Pedido #
+                                    pedido[2], // fecha → Fecha
+                                    "Bs" + pedido[3], // total → Total (con moneda)
+                                    capitalizarEstado(pedido[4]), // estado → Estado
+                                    pedido[7] // direccion_nombre → Dirección
+                                });
+                            }
+                            
+                            tableNotifySuccess(event.getSender(), "🚚 Historial de Pedidos", clienteHeaders, (ArrayList<String[]>) pedidosCliente, event.getCommand());
+                            
+                            // Mensaje informativo más claro
+                            simpleNotify(event.getSender(), "💡 Información Útil", 
+                                "📋 **Para ver detalles completos de un pedido:**\n\n" +
+                                "📌 **Comando:** `pedido get <numero>`\n\n" +
+                                "📝 **Ejemplo:** `pedido get 1` (detalles del pedido #1)\n\n" +
+                                "📊 **Estados de pedidos:**\n" +
+                                "• **Pendiente** - En preparación\n" +
+                                "• **Procesando** - Preparando envío\n" +
+                                "• **Enviado** - En camino a tu dirección\n" +
+                                "• **Entregado** - Completado exitosamente\n\n" +
+                                "ℹ️ **Otros comandos:**\n" +
+                                "• `notaventa get` - Ver facturas de compras\n" +
+                                "• `comprar <tipo_pago_id, url_google_maps>` - Nueva compra");
                         } else {
                             simpleNotify(event.getSender(), "Sin pedidos", 
-                                "📋 **No tienes pedidos registrados**");
+                                "📋 **No tienes pedidos registrados**\n\n" +
+                                "🛒 **Para realizar tu primera compra:**\n" +
+                                "1. Explora productos: `producto get`\n" +
+                                "2. Agrega al carrito: `carrito add <producto_id, cantidad>`\n" +
+                                "3. Realiza compra: `comprar <tipo_pago_id, url_google_maps>`");
                         }
                     }
                     break;
@@ -1675,7 +1961,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             // Calcular total del carrito
             double totalCarrito = 0.0;
             for (String[] detalle : detallesCarrito) {
-                totalCarrito += Double.parseDouble(detalle[4]); // precio_total
+                totalCarrito += Double.parseDouble(detalle[5]); // subtotal correcto
             }
             
             // 2. Crear dirección
@@ -1736,7 +2022,15 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             resumen.append("🛒 **Productos comprados:**\n");
             for (String[] detalle : detallesCarrito) {
-                resumen.append("• ").append(detalle[5]).append(" x").append(detalle[3]).append(" = Bs").append(detalle[4]).append("\n");
+                String nombreProducto = detalle[6];  // producto_nombre
+                String cantidad = detalle[3];        // cantidad
+                String precioUnitario = detalle[4];  // precio_unitario
+                String subtotal = detalle[5];        // subtotal
+                
+                resumen.append("• ").append(nombreProducto)
+                       .append(" x").append(cantidad)
+                       .append(" (Bs").append(precioUnitario).append(" c/u)")
+                       .append(" = Bs").append(subtotal).append("\n");
             }
             resumen.append("\n");
             
@@ -1814,14 +2108,56 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         // Obtener los detalles del carrito con productos
                         List<String[]> detallesData = nCarrito.getDetallesCarrito(carritoId);
                         
-                        // Mostrar información del carrito
-                        String[] carritoHeaders = {"ID", "Cliente ID", "Fecha", "Total", "Estado", "NIT", "Nombre", "Email", "Creado", "Actualizado"};
-                        tableNotifySuccess(event.getSender(), "🛒 **Tu Carrito de Compras**", carritoHeaders, (ArrayList<String[]>) carritoData, event.getCommand());
+                        // Mostrar información del carrito con headers amigables para el cliente
+                        String[] carritoHeaders = {"Carrito ID", "Fecha", "Total", "Estado", "NIT", "Cliente", "Email"};
                         
-                        // Mostrar productos del carrito
+                        // Crear datos del carrito sin mostrar cliente_id al cliente
+                        List<String[]> carritoClienteData = new ArrayList<>();
+                        for (String[] carrito : carritoData) {
+                            carritoClienteData.add(new String[]{
+                                carrito[0], // id → Carrito ID
+                                carrito[2], // fecha → Fecha  
+                                carrito[3], // total → Total
+                                carrito[4], // estado → Estado
+                                carrito[5], // nit → NIT
+                                carrito[6], // nombre → Cliente
+                                carrito[7]  // email → Email
+                            });
+                        }
+                        
+                        tableNotifySuccess(event.getSender(), "🛒 **Tu Carrito de Compras**", carritoHeaders, (ArrayList<String[]>) carritoClienteData, event.getCommand());
+                        
+                        // Mostrar productos del carrito con headers amigables
                         if (!detallesData.isEmpty()) {
-                            String[] detallesHeaders = {"ID", "Carrito ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción", "Stock", "Precio Venta", "Creado", "Actualizado"};
-                            tableNotifySuccess(event.getSender(), "📦 **Productos en tu Carrito**", detallesHeaders, (ArrayList<String[]>) detallesData, event.getCommand());
+                            String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción", "Stock Disponible", "Precio Venta"};
+                            
+                            // Crear datos de detalles sin mostrar carrito_id al cliente
+                            List<String[]> detallesClienteData = new ArrayList<>();
+                            for (String[] detalle : detallesData) {
+                                detallesClienteData.add(new String[]{
+                                    detalle[0], // id → Detalle ID
+                                    detalle[2], // producto_almacen_id → Producto ID  
+                                    detalle[3], // cantidad → Cantidad
+                                    detalle[4], // precio_unitario → Precio Unit.
+                                    detalle[5], // subtotal → Subtotal
+                                    detalle[6], // producto_nombre → Producto
+                                    detalle[7], // producto_descripcion → Descripción
+                                    detalle[8], // stock → Stock Disponible
+                                    detalle[9]  // precio_venta → Precio Venta
+                                });
+                            }
+                            
+                            tableNotifySuccess(event.getSender(), "📦 **Productos en tu Carrito**", detallesHeaders, (ArrayList<String[]>) detallesClienteData, event.getCommand());
+                            
+                            // Agregar explicación sobre los IDs para el cliente
+                            simpleNotify(event.getSender(), "ℹ️ Información sobre IDs", 
+                                "📋 **Explicación de identificadores:**\n\n" +
+                                "🔹 **Detalle ID:** Identificador único de cada producto en tu carrito\n" +
+                                "   • Lo necesitas para modificar cantidad: `carrito modify <detalle_id, nueva_cantidad>`\n" +
+                                "   • Lo necesitas para eliminar: `carrito delete <detalle_id>`\n\n" +
+                                "🔹 **Producto ID:** Identificador del producto en nuestro catálogo\n" +
+                                "   • Es útil para agregar más del mismo producto: `carrito add <producto_id, cantidad>`\n" +
+                                "   • Puedes ver todos los productos con: `producto get`");
                         } else {
                             simpleNotify(event.getSender(), "Carrito vacío", 
                                 "🛒 **Tu carrito está vacío.**\n\n" +
@@ -1893,8 +2229,66 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         int detalleId = Integer.parseInt(event.getParams().get(0));
                         int cantidad = Integer.parseInt(event.getParams().get(1));
                         
-                        List<String[]> resultado = nCarrito.actualizarCantidad(detalleId, cantidad);
-                        tableNotifySuccess(event.getSender(), "Cantidad actualizada", DDetalleCarrito.HEADERS, (ArrayList<String[]>) resultado, event.getCommand());
+                        // Primero obtener información del producto antes de modificar
+                        DDetalleCarrito dDetalleCarrito = new DDetalleCarrito();
+                        List<String[]> infoAnterior = dDetalleCarrito.getById(detalleId);
+                        
+                        if (infoAnterior.isEmpty()) {
+                            simpleNotify(event.getSender(), "Error", 
+                                "❌ **No se encontró el producto en tu carrito.**\n\n" +
+                                "🔍 **Para ver tu carrito actual usa:**\n" +
+                                "carrito get");
+                        } else {
+                            // Obtener información del producto antes de modificar
+                            String[] productoAnterior = infoAnterior.get(0);
+                            String nombreProducto = productoAnterior[6]; // producto_nombre
+                            String descripcionProducto = productoAnterior[7]; // producto_descripcion
+                            int cantidadAnterior = Integer.parseInt(productoAnterior[3]); // cantidad
+                            String precioUnitario = productoAnterior[4]; // precio_unitario
+                            
+                            // Realizar la actualización
+                            List<String[]> resultado = nCarrito.actualizarCantidad(detalleId, cantidad);
+                            
+                            if (!resultado.isEmpty()) {
+                                // Crear headers amigables para el cliente
+                                String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción", "Stock Disponible", "Precio Venta"};
+                                
+                                // Crear datos amigables (sin mostrar carrito_id)
+                                List<String[]> resultadoClienteData = new ArrayList<>();
+                                for (String[] detalle : resultado) {
+                                    resultadoClienteData.add(new String[]{
+                                        detalle[0], // id → Detalle ID
+                                        detalle[2], // producto_almacen_id → Producto ID  
+                                        detalle[3], // cantidad → Cantidad
+                                        detalle[4], // precio_unitario → Precio Unit.
+                                        detalle[5], // subtotal → Subtotal
+                                        detalle[6], // producto_nombre → Producto
+                                        detalle[7], // producto_descripcion → Descripción
+                                        detalle[8], // stock → Stock Disponible
+                                        detalle[9]  // precio_venta → Precio Venta
+                                    });
+                                }
+                                
+                                // Mensaje personalizado y detallado
+                                simpleNotify(event.getSender(), "✅ Cantidad Actualizada", 
+                                    "🛒 **Producto modificado exitosamente:**\n\n" +
+                                    "📦 **Producto:** " + nombreProducto + "\n" +
+                                    "📋 **Descripción:** " + descripcionProducto + "\n\n" +
+                                    "🔄 **Cambio realizado:**\n" +
+                                    "• **Cantidad anterior:** " + cantidadAnterior + " unidades\n" +
+                                    "• **Nueva cantidad:** " + cantidad + " unidades\n" +
+                                    "• **Precio unitario:** $" + precioUnitario + "\n\n" +
+                                    "💰 **Nuevo subtotal:** $" + resultado.get(0)[5]);
+                                
+                                // Mostrar tabla con información actualizada
+                                tableNotifySuccess(event.getSender(), "📊 **Detalle actualizado en tu carrito**", detallesHeaders, (ArrayList<String[]>) resultadoClienteData, event.getCommand());
+                                
+                            } else {
+                                simpleNotify(event.getSender(), "Error al actualizar", 
+                                    "❌ **No se pudo actualizar la cantidad del producto.**\n\n" +
+                                    "🔧 **Verifica que la cantidad sea válida y mayor a 0.**");
+                            }
+                        }
                         
                     } else {
                         simpleNotify(event.getSender(), "Error de Parámetros", 
@@ -2006,6 +2400,106 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                metodo.equals("qr") || 
                metodo.equals("paypal") || 
                metodo.equals("bitcoin");
+    }
+    
+    /**
+     * Filtra los datos de productos para mostrar solo las columnas relevantes para el cliente
+     * Elimina: precio_compra (índice 3) e imagen (índice 5)
+     * Mantiene: id, cod_producto, nombre, precio_venta, descripcion, categoria
+     */
+    private List<String[]> filtrarDatosParaCliente(List<String[]> productosData) {
+        List<String[]> productosCliente = new ArrayList<>();
+        
+        for (String[] producto : productosData) {
+            // Headers originales: {"id", "cod_producto", "nombre", "precio_compra", "precio_venta", "imagen", "descripcion", "categoria"}
+            // Headers cliente:    {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"}
+            
+            productosCliente.add(new String[]{
+                producto[0], // id → ID
+                producto[1], // cod_producto → Código
+                producto[2], // nombre → Producto
+                producto[4], // precio_venta → Precio (salteamos precio_compra)
+                producto[6], // descripcion → Descripción (salteamos imagen)
+                producto[7]  // categoria → Categoría
+            });
+        }
+        
+        return productosCliente;
+    }
+    
+    /**
+     * Muestra mensaje informativo contextual sobre el carrito
+     */
+    private void mostrarMensajeInformativo(String userEmail, boolean esCategoria) {
+        String mensaje = "🛒 **Para agregar productos al carrito:**\n\n" +
+                        "📌 **Comando:** `carrito add <producto_id, cantidad>`\n\n" +
+                        "📝 **Ejemplo:** `carrito add 1, 2` (agrega 2 unidades del producto con ID 1)\n\n";
+        
+        if (esCategoria) {
+            mensaje += "🏷️ **Filtros útiles:**\n" +
+                      "• `producto get` - Ver todos los productos\n" +
+                      "• `categoria get` - Ver todas las categorías\n\n";
+        } else {
+            mensaje += "🏷️ **Filtros útiles:**\n" +
+                      "• `producto get <categoria_id>` - Ver productos por categoría\n" +
+                      "• `categoria get` - Ver categorías disponibles\n\n";
+        }
+        
+        mensaje += "ℹ️ **Otros comandos útiles:**\n" +
+                  "• `carrito get` - Ver tu carrito actual\n" +
+                  "• `carrito modify <detalle_id, cantidad>` - Modificar cantidad\n" +
+                  "• `carrito delete <detalle_id>` - Eliminar producto del carrito";
+        
+        simpleNotify(userEmail, "💡 Consejo", mensaje);
+    }
+    
+    /**
+     * Determina el estado de entrega de manera clara para el cliente
+     */
+    private String determinarEstadoEntrega(String estado, String fechaEnvio, String fechaEntrega) {
+        if ("entregado".equals(estado)) {
+            return "✅ Entregado";
+        } else if ("enviado".equals(estado)) {
+            return "🚛 En camino";
+        } else if ("procesando".equals(estado)) {
+            return "📦 Preparando";
+        } else if ("pendiente".equals(estado)) {
+            return "⏳ En preparación";
+        } else if ("cancelado".equals(estado)) {
+            return "❌ Cancelado";
+        } else {
+            return "📋 " + capitalizarEstado(estado);
+        }
+    }
+    
+    /**
+     * Capitaliza el estado para mostrarlo de forma más amigable
+     */
+    private String capitalizarEstado(String estado) {
+        if (estado == null || estado.isEmpty()) {
+            return "Desconocido";
+        }
+        return estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase();
+    }
+    
+    /**
+     * Obtiene una descripción detallada del estado del pedido
+     */
+    private String obtenerDescripcionEstado(String estado) {
+        switch (estado.toLowerCase()) {
+            case "pendiente":
+                return "Tu pedido está en cola de preparación. Pronto comenzaremos a procesarlo.";
+            case "procesando":
+                return "Estamos preparando tu pedido para el envío. Te notificaremos cuando esté listo.";
+            case "enviado":
+                return "Tu pedido está en camino a la dirección especificada. ¡Pronto llegará!";
+            case "entregado":
+                return "Tu pedido ha sido entregado exitosamente. ¡Esperamos que disfrutes tu compra!";
+            case "cancelado":
+                return "Este pedido ha sido cancelado. Si tienes dudas, contáctanos.";
+            default:
+                return "Estado: " + capitalizarEstado(estado);
+        }
     }
 
 }

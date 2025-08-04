@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DDireccion {
     
-    public static final String[] HEADERS = {"id", "nombre", "longitud", "latitud", "referencia", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "nombre", "longitud", "latitud", "referencia"};
     
     private final SqlConnection connection;
     
@@ -24,7 +24,7 @@ public class DDireccion {
      */
     public List<String[]> getAll() throws SQLException {
         List<String[]> direcciones = new ArrayList<>();
-        String query = "SELECT id, nombre, longitud, latitud, referencia, created_at, updated_at " +
+        String query = "SELECT id, nombre, longitud, latitud, referencia " +
                       "FROM direccion " +
                       "ORDER BY nombre";
         
@@ -37,9 +37,7 @@ public class DDireccion {
                     rs.getString("nombre"),
                     rs.getString("longitud"),
                     rs.getString("latitud"),
-                    rs.getString("referencia"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
+                    rs.getString("referencia")
                 });
             }
         }
@@ -52,7 +50,7 @@ public class DDireccion {
      */
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> direcciones = new ArrayList<>();
-        String query = "SELECT id, nombre, longitud, latitud, referencia, created_at, updated_at " +
+        String query = "SELECT id, nombre, longitud, latitud, referencia " +
                       "FROM direccion " +
                       "WHERE id = ?";
         
@@ -67,9 +65,7 @@ public class DDireccion {
                         rs.getString("nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -83,7 +79,7 @@ public class DDireccion {
      */
     public List<String[]> getByNombre(String nombre) throws SQLException {
         List<String[]> direcciones = new ArrayList<>();
-        String query = "SELECT id, nombre, longitud, latitud, referencia, created_at, updated_at " +
+        String query = "SELECT id, nombre, longitud, latitud, referencia " +
                       "FROM direccion " +
                       "WHERE LOWER(nombre) LIKE LOWER(?) " +
                       "ORDER BY nombre";
@@ -99,9 +95,7 @@ public class DDireccion {
                         rs.getString("nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -117,7 +111,7 @@ public class DDireccion {
         List<String[]> direcciones = new ArrayList<>();
         String query = "INSERT INTO direccion (nombre, longitud, latitud, referencia) " +
                       "VALUES (?, ?, ?, ?) " +
-                      "RETURNING id, nombre, longitud, latitud, referencia, created_at, updated_at";
+                      "RETURNING id, nombre, longitud, latitud, referencia";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -141,9 +135,7 @@ public class DDireccion {
                         rs.getString("nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -157,9 +149,9 @@ public class DDireccion {
      */
     public List<String[]> update(int id, String nombre, Double longitud, Double latitud, String referencia) throws SQLException {
         List<String[]> direcciones = new ArrayList<>();
-        String query = "UPDATE direccion SET nombre = ?, longitud = ?, latitud = ?, referencia = ?, updated_at = CURRENT_TIMESTAMP " +
+        String query = "UPDATE direccion SET nombre = ?, longitud = ?, latitud = ?, referencia = ? " +
                       "WHERE id = ? " +
-                      "RETURNING id, nombre, longitud, latitud, referencia, created_at, updated_at";
+                      "RETURNING id, nombre, longitud, latitud, referencia";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -184,9 +176,7 @@ public class DDireccion {
                         rs.getString("nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -234,7 +224,7 @@ public class DDireccion {
      */
     public List<String[]> getDireccionesCercanas(double latitud, double longitud, double radioKm) throws SQLException {
         List<String[]> direcciones = new ArrayList<>();
-        String query = "SELECT id, nombre, longitud, latitud, referencia, created_at, updated_at, " +
+        String query = "SELECT id, nombre, longitud, latitud, referencia, " +
                       "SQRT(POW(69.1 * (latitud - ?), 2) + POW(69.1 * (? - longitud) * COS(latitud / 57.3), 2)) AS distancia " +
                       "FROM direccion " +
                       "WHERE latitud IS NOT NULL AND longitud IS NOT NULL " +
@@ -255,9 +245,7 @@ public class DDireccion {
                         rs.getString("longitud"),
                         rs.getString("latitud"),
                         rs.getString("referencia"),
-                        String.valueOf(rs.getDouble("distancia")),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        String.valueOf(rs.getDouble("distancia"))
                     });
                 }
             }

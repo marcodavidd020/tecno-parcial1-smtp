@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DPedido {
     
-    public static final String[] HEADERS = {"id", "direccion_id", "fecha", "total", "estado", "fecha_hora_envio", "fecha_hora_entrega", "created_at", "updated_at"};
+    public static final String[] HEADERS = {"id", "direccion_id", "fecha", "total", "estado", "fecha_hora_envio", "fecha_hora_entrega", "direccion_nombre", "longitud", "latitud", "referencia"};
     
     private final SqlConnection connection;
     
@@ -25,7 +25,7 @@ public class DPedido {
     public List<String[]> getAll() throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
         String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
-                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, " +
                       "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
                       "FROM pedido p " +
                       "INNER JOIN direccion d ON p.direccion_id = d.id " +
@@ -46,9 +46,7 @@ public class DPedido {
                     rs.getString("direccion_nombre"),
                     rs.getString("longitud"),
                     rs.getString("latitud"),
-                    rs.getString("referencia"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
+                    rs.getString("referencia")
                 });
             }
         }
@@ -62,7 +60,7 @@ public class DPedido {
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
         String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
-                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, " +
                       "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
                       "FROM pedido p " +
                       "INNER JOIN direccion d ON p.direccion_id = d.id " +
@@ -85,9 +83,7 @@ public class DPedido {
                         rs.getString("direccion_nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -102,7 +98,7 @@ public class DPedido {
     public List<String[]> getByEstado(String estado) throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
         String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
-                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, " +
                       "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
                       "FROM pedido p " +
                       "INNER JOIN direccion d ON p.direccion_id = d.id " +
@@ -126,9 +122,7 @@ public class DPedido {
                         rs.getString("direccion_nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -143,7 +137,7 @@ public class DPedido {
     public List<String[]> getByClienteEmail(String email) throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
         String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
-                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, " +
                       "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
                       "FROM pedido p " +
                       "INNER JOIN direccion d ON p.direccion_id = d.id " +
@@ -170,9 +164,7 @@ public class DPedido {
                         rs.getString("direccion_nombre"),
                         rs.getString("longitud"),
                         rs.getString("latitud"),
-                        rs.getString("referencia"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("referencia")
                     });
                 }
             }
@@ -188,7 +180,7 @@ public class DPedido {
         List<String[]> pedidos = new ArrayList<>();
         String query = "INSERT INTO pedido (direccion_id, fecha, total, estado) " +
                       "VALUES (?, ?, ?, ?) " +
-                      "RETURNING id, direccion_id, fecha, total, estado, fecha_hora_envio, fecha_hora_entrega, created_at, updated_at";
+                      "RETURNING id, direccion_id, fecha, total, estado, fecha_hora_envio, fecha_hora_entrega";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -211,9 +203,7 @@ public class DPedido {
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("estado"),
                         rs.getString("fecha_hora_envio"),
-                        rs.getString("fecha_hora_entrega"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("fecha_hora_entrega")
                     });
                 }
             }
@@ -227,7 +217,7 @@ public class DPedido {
      */
     public List<String[]> updateEstado(int id, String estado) throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
-        String query = "UPDATE pedido SET estado = ?, updated_at = CURRENT_TIMESTAMP ";
+        String query = "UPDATE pedido SET estado = ? ";
         
         // Agregar fecha de envío o entrega según el estado
         if ("enviado".equals(estado)) {
@@ -237,7 +227,7 @@ public class DPedido {
         }
         
         query += "WHERE id = ? " +
-                "RETURNING id, direccion_id, fecha, total, estado, fecha_hora_envio, fecha_hora_entrega, created_at, updated_at";
+                "RETURNING id, direccion_id, fecha, total, estado, fecha_hora_envio, fecha_hora_entrega";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -253,9 +243,7 @@ public class DPedido {
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("estado"),
                         rs.getString("fecha_hora_envio"),
-                        rs.getString("fecha_hora_entrega"),
-                        rs.getString("created_at"),
-                        rs.getString("updated_at")
+                        rs.getString("fecha_hora_entrega")
                     });
                 }
             }
@@ -320,7 +308,7 @@ public class DPedido {
     public List<String[]> getPedidosPendientesEnvio() throws SQLException {
         List<String[]> pedidos = new ArrayList<>();
         String query = "SELECT p.id, p.direccion_id, p.fecha, p.total, p.estado, " +
-                      "p.fecha_hora_envio, p.fecha_hora_entrega, p.created_at, p.updated_at, " +
+                      "p.fecha_hora_envio, p.fecha_hora_entrega, " +
                       "d.nombre as direccion_nombre, d.longitud, d.latitud, d.referencia " +
                       "FROM pedido p " +
                       "INNER JOIN direccion d ON p.direccion_id = d.id " +
@@ -342,9 +330,7 @@ public class DPedido {
                     rs.getString("direccion_nombre"),
                     rs.getString("longitud"),
                     rs.getString("latitud"),
-                    rs.getString("referencia"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
+                    rs.getString("referencia")
                 });
             }
         }
