@@ -38,6 +38,7 @@ public class Token {
     public static final int CANCEL = 205;
     public static final int REPORT = 206;
     public static final int USER = 207;
+    public static final int ID = 208;
 
     // Constantes de errores
     public static final int ERROR_COMMAND = 300;
@@ -154,6 +155,8 @@ public class Token {
                 return "report";
             case USER:
                 return "user";
+            case ID:
+                return "id";
             case ERROR_COMMAND:
                 return "UNKNOWN COMMAND";
             case ERROR_CHARACTER:
@@ -218,6 +221,8 @@ public class Token {
                 return REPORT;
             case "user":
                 return USER;
+            case "id":
+                return ID;
             case "UNKNOWN COMMAND":
                 return ERROR_COMMAND;
             case "UNKNOWN CHARACTER":

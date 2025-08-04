@@ -3,6 +3,9 @@ package com.mycompany.parcial1.tecnoweb;
 import data.*;
 import interfaces.ICasoUsoListener;
 import interfaces.IEmailListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -549,6 +552,78 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     @Override
     public void categoria(ParamsAction event) {
         try {
+            // Verificar si este comando debería ser interpretado como producto get categoria
+            String command = event.getCommand();
+            if (command != null && command.toLowerCase().contains("producto") && 
+                command.toLowerCase().contains("categoria") && 
+                event.getParams() != null && event.getParams().size() >= 1) {
+                
+                System.out.println("=== DETECTADO COMANDO PRODUCTO GET CATEGORIA ===");
+                System.out.println("Comando original: " + command);
+                System.out.println("Redirigiendo a producto get categoria...");
+                
+                // Redirigir al comando correcto
+                try {
+                    int categoriaId = Integer.parseInt(event.getParams().get(0));
+                    List<String[]> productosData = nProducto.getByCategoria(categoriaId);
+                    
+                    if (!productosData.isEmpty()) {
+                        System.out.println("Productos encontrados, procesando...");
+                        
+                        // Headers amigables para el cliente
+                        String[] clienteHeaders = {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"};
+                        
+                        // Filtrar datos para el cliente
+                        List<String[]> productosCliente = filtrarDatosParaCliente(productosData);
+                        System.out.println("Productos filtrados para cliente: " + productosCliente.size());
+                        
+                        // Obtener nombre de la categoría para el título
+                        String nombreCategoria = productosData.get(0)[7];
+                        System.out.println("Nombre de categoría: " + nombreCategoria);
+                        
+                        tableNotifySuccess(event.getSender(), "📦 Productos - Categoría: " + nombreCategoria, 
+                            clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                        
+                        // Mensaje informativo específico para categoría
+                        mostrarMensajeInformativo(event.getSender(), true);
+                        
+                    } else {
+                        System.out.println("No se encontraron productos en la categoría " + categoriaId);
+                        
+                        // Obtener información de la categoría para mostrar un mensaje más informativo
+                        try {
+                            List<String[]> categoriaData = nCategoria.getById(categoriaId);
+                            String nombreCategoria = "ID " + categoriaId;
+                            if (!categoriaData.isEmpty()) {
+                                nombreCategoria = categoriaData.get(0)[1]; // nombre de la categoría
+                                System.out.println("Categoría encontrada: " + nombreCategoria);
+                            }
+                            
+                            simpleNotify(event.getSender(), "Sin productos en esta categoría", 
+                                "📦 **No hay productos registrados en la categoría:** " + nombreCategoria + "\n\n" +
+                                "📋 **Para ver todas las categorías disponibles:**\n" +
+                                "categoria get\n\n" +
+                                "📋 **Para ver todos los productos:**\n" +
+                                "producto get");
+                        } catch (SQLException e) {
+                            simpleNotify(event.getSender(), "Sin productos en esta categoría", 
+                                "❌ **No hay productos registrados en la categoría con ID: " + categoriaId + "**\n\n" +
+                                "📋 **Para ver todas las categorías disponibles:**\n" +
+                                "categoria get");
+                        }
+                    }
+                    return; // Salir sin procesar como comando de categoría
+                    
+                } catch (NumberFormatException e) {
+                    simpleNotify(event.getSender(), "ID inválido", 
+                        "❌ **El ID de categoría debe ser un número válido.**\n\n" +
+                        "📋 **Uso correcto:** `producto get categoria <numero>`\n" +
+                        "📝 **Ejemplo:** `producto get categoria 1`");
+                    return;
+                }
+            }
+            
+            // Procesamiento normal del comando categoria
             switch (event.getAction()) {
                 case Token.GET:
                     if (event.getParams() != null && event.getParams().size() >= 1) {
@@ -675,8 +750,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             try {
                                 int productoId = Integer.parseInt(event.getParams().get(1));
                                 List<String[]> productoData = nProducto.getById(productoId);
-                                
-                                if (!productoData.isEmpty()) {
+                        
+                        if (!productoData.isEmpty()) {
                                     // Filtrar datos para el cliente
                                     List<String[]> productosCliente = filtrarDatosParaCliente(productoData);
                                     
@@ -692,8 +767,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                         "• `producto get` - Ver catálogo completo\n" +
                                         "• `producto get categoria <categoria_id>` - Ver por categoría");
                                     
-                                } else {
-                                    simpleNotify(event.getSender(), "Producto no encontrado", 
+                        } else {
+                            simpleNotify(event.getSender(), "Producto no encontrado", 
                                         "❌ **No se encontró el producto con ID: " + productoId + "**\n\n" +
                                         "🔍 **Sugerencias:**\n" +
                                         "• `producto get` - Ver todos los productos disponibles\n" +
@@ -709,16 +784,27 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             
                         } else if ("categoria".equals(subcomando)) {
                             // Comando: producto get categoria <categoria_id>
+                            System.out.println("=== PROCESANDO PRODUCTO GET CATEGORIA ===");
+                            System.out.println("Subcomando: " + subcomando);
+                            System.out.println("Parámetros: " + event.getParams());
+                            
                             try {
                                 int categoriaId = Integer.parseInt(event.getParams().get(1));
+                                System.out.println("Categoría ID: " + categoriaId);
+                                
                                 List<String[]> productosData = nProducto.getByCategoria(categoriaId);
+                                System.out.println("Productos encontrados: " + productosData.size());
                                 
                                 if (!productosData.isEmpty()) {
+                                    System.out.println("Productos encontrados, procesando...");
+                                    
                                     // Filtrar datos para el cliente
                                     List<String[]> productosCliente = filtrarDatosParaCliente(productosData);
+                                    System.out.println("Productos filtrados para cliente: " + productosCliente.size());
                                     
                                     // Obtener nombre de la categoría para el título
                                     String nombreCategoria = productosData.get(0)[7];
+                                    System.out.println("Nombre de categoría: " + nombreCategoria);
                                     
                                     tableNotifySuccess(event.getSender(), "📦 Productos - Categoría: " + nombreCategoria, 
                                         clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
@@ -727,10 +813,29 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     mostrarMensajeInformativo(event.getSender(), true);
                                     
                                 } else {
-                                    simpleNotify(event.getSender(), "Sin productos en esta categoría", 
-                                        "❌ **No hay productos registrados en la categoría con ID: " + categoriaId + "**\n\n" +
-                                        "📋 **Para ver todas las categorías disponibles:**\n" +
-                                        "categoria get");
+                                    System.out.println("No se encontraron productos en la categoría " + categoriaId);
+                                    
+                                    // Obtener información de la categoría para mostrar un mensaje más informativo
+                                    try {
+                                        List<String[]> categoriaData = nCategoria.getById(categoriaId);
+                                        String nombreCategoria = "ID " + categoriaId;
+                                        if (!categoriaData.isEmpty()) {
+                                            nombreCategoria = categoriaData.get(0)[1]; // nombre de la categoría
+                                            System.out.println("Categoría encontrada: " + nombreCategoria);
+                                        }
+                                        
+                                        simpleNotify(event.getSender(), "Sin productos en esta categoría", 
+                                            "📦 **No hay productos registrados en la categoría:** " + nombreCategoria + "\n\n" +
+                                            "📋 **Para ver todas las categorías disponibles:**\n" +
+                                            "categoria get\n\n" +
+                                            "📋 **Para ver todos los productos:**\n" +
+                                            "producto get");
+                                    } catch (SQLException e) {
+                                        simpleNotify(event.getSender(), "Sin productos en esta categoría", 
+                                            "❌ **No hay productos registrados en la categoría con ID: " + categoriaId + "**\n\n" +
+                                            "📋 **Para ver todas las categorías disponibles:**\n" +
+                                            "categoria get");
+                                    }
                                 }
                                 
                             } catch (NumberFormatException e) {
@@ -752,16 +857,50 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         }
                         
                     } else if (event.getParams() != null && event.getParams().size() == 1) {
-                        // Comando con un solo parámetro - mostrar ayuda
-                        simpleNotify(event.getSender(), "Parámetros incompletos", 
-                            "❌ **Faltan parámetros.**\n\n" +
-                            "📋 **Uso correcto:**\n" +
-                            "• `producto get` - Ver todos los productos\n" +
-                            "• `producto get id <producto_id>` - Ver producto específico\n" +
-                            "• `producto get categoria <categoria_id>` - Ver productos por categoría\n\n" +
-                            "📝 **Ejemplos:**\n" +
-                            "• `producto get id 1`\n" +
-                            "• `producto get categoria 2`");
+                        // Comando: producto get <numero> (ID directo)
+                        String param = event.getParams().get(0);
+                        try {
+                            int productoId = Integer.parseInt(param);
+                            List<String[]> productoData = nProducto.getById(productoId);
+                            
+                            if (!productoData.isEmpty()) {
+                                // Filtrar datos para el cliente
+                                List<String[]> productosCliente = filtrarDatosParaCliente(productoData);
+                                
+                                tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
+                                    clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
+                                
+                                // Mensaje informativo para producto específico
+                                simpleNotify(event.getSender(), "💡 Consejo", 
+                                    "🛒 **Para agregar este producto al carrito:**\n\n" +
+                                    "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
+                                    "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
+                                    "🔙 **Ver más productos:**\n" +
+                                    "• `producto get` - Ver catálogo completo\n" +
+                                    "• `producto get categoria <categoria_id>` - Ver por categoría");
+                                
+                            } else {
+                                simpleNotify(event.getSender(), "Producto no encontrado", 
+                                    "❌ **No se encontró el producto con ID: " + productoId + "**\n\n" +
+                                    "🔍 **Sugerencias:**\n" +
+                                    "• `producto get` - Ver todos los productos disponibles\n" +
+                                    "• `categoria get` - Ver categorías disponibles");
+                            }
+                            
+                        } catch (NumberFormatException e) {
+                            // Si no es un número, mostrar ayuda
+                            simpleNotify(event.getSender(), "Parámetros incorrectos", 
+                                "❌ **Parámetro no reconocido: " + param + "**\n\n" +
+                                "📋 **Uso correcto:**\n" +
+                                "• `producto get` - Ver todos los productos\n" +
+                                "• `producto get <numero>` - Ver producto específico\n" +
+                                "• `producto get id <producto_id>` - Ver producto específico\n" +
+                                "• `producto get categoria <categoria_id>` - Ver productos por categoría\n\n" +
+                                "📝 **Ejemplos:**\n" +
+                                "• `producto get 1`\n" +
+                                "• `producto get id 1`\n" +
+                                "• `producto get categoria 2`");
+                        }
                             
                     } else {
                         // Comando: producto get (todos los productos)
@@ -856,6 +995,59 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             "producto delete &lt;id&gt;\n\n" +
                             "📧 **Ejemplo:**\n" +
                             "producto delete 1");
+                    }
+                    break;
+                
+                case Token.ID: // Manejar el caso donde "id" se interpreta como acción (producto get id <numero>)
+                    // Headers amigables para el cliente (sin precio_compra e imagen)
+                    String[] clienteHeadersId = {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"};
+                    
+                    if (event.getParams() != null && event.getParams().size() >= 1) {
+                        // Comando: producto get id <producto_id> (donde "id" es la acción)
+                        try {
+                            int productoId = Integer.parseInt(event.getParams().get(0));
+                            List<String[]> productoData = nProducto.getById(productoId);
+                            
+                            if (!productoData.isEmpty()) {
+                                // Filtrar datos para el cliente
+                                List<String[]> productosCliente = filtrarDatosParaCliente(productoData);
+                                
+                                tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
+                                    clienteHeadersId, (ArrayList<String[]>) productosCliente, event.getCommand());
+                                
+                                // Mensaje informativo para producto específico
+                                simpleNotify(event.getSender(), "💡 Consejo", 
+                                    "🛒 **Para agregar este producto al carrito:**\n\n" +
+                                    "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
+                                    "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
+                                    "🔙 **Ver más productos:**\n" +
+                                    "• `producto get` - Ver catálogo completo\n" +
+                                    "• `producto get categoria <categoria_id>` - Ver por categoría");
+                                
+                            } else {
+                                simpleNotify(event.getSender(), "Producto no encontrado", 
+                                    "❌ **No se encontró el producto con ID: " + productoId + "**\n\n" +
+                                    "🔍 **Sugerencias:**\n" +
+                                    "• `producto get` - Ver todos los productos disponibles\n" +
+                                    "• `categoria get` - Ver categorías disponibles");
+                            }
+                            
+                        } catch (NumberFormatException e) {
+                            simpleNotify(event.getSender(), "ID inválido", 
+                                "❌ **El ID del producto debe ser un número válido.**\n\n" +
+                                "📋 **Uso correcto:** `producto get id <numero>`\n" +
+                                "📝 **Ejemplo:** `producto get id 1`");
+                        }
+                    } else {
+                        simpleNotify(event.getSender(), "Parámetros incompletos", 
+                            "❌ **Faltan parámetros.**\n\n" +
+                            "📋 **Uso correcto:**\n" +
+                            "• `producto get` - Ver todos los productos\n" +
+                            "• `producto get id <producto_id>` - Ver producto específico\n" +
+                            "• `producto get categoria <categoria_id>` - Ver productos por categoría\n\n" +
+                            "📝 **Ejemplos:**\n" +
+                            "• `producto get id 1`\n" +
+                            "• `producto get categoria 2`");
                     }
                     break;
                     
@@ -1087,7 +1279,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             List<String[]> clienteData = nCliente.getById(id);
                             
                             if (!clienteData.isEmpty()) {
-                                String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género", "Creado", "Actualizado"};
+                                String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género"};
                                 tableNotifySuccess(event.getSender(), "Cliente encontrado", enhancedHeaders, (ArrayList<String[]>) clienteData, event.getCommand());
                             } else {
                                 simpleNotify(event.getSender(), "Cliente no encontrado", 
@@ -1098,7 +1290,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             List<String[]> clienteData = nCliente.getByNit(param);
                             
                             if (!clienteData.isEmpty()) {
-                                String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género", "Creado", "Actualizado"};
+                                String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género"};
                                 tableNotifySuccess(event.getSender(), "Cliente encontrado por NIT", enhancedHeaders, (ArrayList<String[]>) clienteData, event.getCommand());
                             } else {
                                 simpleNotify(event.getSender(), "Cliente no encontrado", 
@@ -1110,7 +1302,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         List<String[]> clientesData = nCliente.getAll();
                         
                         if (!clientesData.isEmpty()) {
-                            String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género", "Creado", "Actualizado"};
+                            String[] enhancedHeaders = {"ID", "NIT", "User ID", "Nombre", "Email", "Celular", "Género"};
                             tableNotifySuccess(event.getSender(), "Lista de Clientes", enhancedHeaders, (ArrayList<String[]>) clientesData, event.getCommand());
                         } else {
                             simpleNotify(event.getSender(), "No hay clientes", 
@@ -2129,7 +2321,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         
                         // Mostrar productos del carrito con headers amigables
                         if (!detallesData.isEmpty()) {
-                            String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción", "Stock Disponible", "Precio Venta"};
+                            String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción"};
                             
                             // Crear datos de detalles sin mostrar carrito_id al cliente
                             List<String[]> detallesClienteData = new ArrayList<>();
@@ -2141,9 +2333,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     detalle[4], // precio_unitario → Precio Unit.
                                     detalle[5], // subtotal → Subtotal
                                     detalle[6], // producto_nombre → Producto
-                                    detalle[7], // producto_descripcion → Descripción
-                                    detalle[8], // stock → Stock Disponible
-                                    detalle[9]  // precio_venta → Precio Venta
+                                    detalle[7]  // producto_descripcion → Descripción
+                                    // Quitamos: detalle[8] (stock) y detalle[9] (precio_venta)
                                 });
                             }
                             
@@ -2205,7 +2396,62 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             System.out.println("Agregando producto al carrito...");
                             List<String[]> resultado = nCarrito.agregarProducto(carritoId, productoId, cantidad);
                             System.out.println("Producto agregado exitosamente");
-                            tableNotifySuccess(event.getSender(), "Producto agregado al carrito", DDetalleCarrito.HEADERS, (ArrayList<String[]>) resultado, event.getCommand());
+                            
+                            if (!resultado.isEmpty()) {
+                                // Obtener los detalles completos del carrito después del agregado
+                                List<String[]> detallesCompletos = nCarrito.getDetallesCarrito(carritoId);
+                                
+                                // Headers amigables para el cliente (igual que en carrito get)
+                                String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción"};
+                                
+                                // Crear datos de detalles sin mostrar carrito_id al cliente
+                                List<String[]> detallesClienteData = new ArrayList<>();
+                                for (String[] detalle : detallesCompletos) {
+                                    detallesClienteData.add(new String[]{
+                                        detalle[0], // id → Detalle ID
+                                        detalle[2], // producto_almacen_id → Producto ID  
+                                        detalle[3], // cantidad → Cantidad
+                                        detalle[4], // precio_unitario → Precio Unit.
+                                        detalle[5], // subtotal → Subtotal
+                                        detalle[6], // producto_nombre → Producto
+                                        detalle[7]  // producto_descripcion → Descripción
+                                        // Quitamos: detalle[8] (stock) y detalle[9] (precio_venta)
+                                    });
+                                }
+                                
+                                // Buscar el detalle del producto recién agregado (último agregado)
+                                String[] ultimoDetalle = detallesCompletos.get(detallesCompletos.size() - 1);
+                                String[] detalleAgregado = new String[]{
+                                    ultimoDetalle[0], // id → Detalle ID
+                                    ultimoDetalle[2], // producto_almacen_id → Producto ID  
+                                    ultimoDetalle[3], // cantidad → Cantidad
+                                    ultimoDetalle[4], // precio_unitario → Precio Unit.
+                                    ultimoDetalle[5], // subtotal → Subtotal
+                                    ultimoDetalle[6], // producto_nombre → Producto
+                                    ultimoDetalle[7]  // producto_descripcion → Descripción
+                                };
+                                
+                                // Mostrar solo el producto agregado
+                                List<String[]> productoAgregadoData = new ArrayList<>();
+                                productoAgregadoData.add(detalleAgregado);
+                                
+                                tableNotifySuccess(event.getSender(), "✅ Producto Agregado al Carrito", detallesHeaders, (ArrayList<String[]>) productoAgregadoData, event.getCommand());
+                                
+                                // Información adicional sobre el producto agregado
+                                simpleNotify(event.getSender(), "🛒 Producto Agregado Exitosamente", 
+                                    "📦 **Producto:** " + detalleAgregado[5] + "\n" +
+                                    "📋 **Descripción:** " + detalleAgregado[6] + "\n" +
+                                    "🔢 **Cantidad agregada:** " + detalleAgregado[2] + " unidades\n" +
+                                    "💰 **Precio unitario:** Bs" + detalleAgregado[3] + "\n" +
+                                    "💵 **Subtotal:** Bs" + detalleAgregado[4] + "\n\n" +
+                                    "ℹ️ **Comandos útiles:**\n" +
+                                    "• `carrito get` - Ver todo tu carrito\n" +
+                                    "• `carrito modify " + detalleAgregado[0] + ", <cantidad>` - Modificar cantidad\n" +
+                                    "• `carrito delete " + detalleAgregado[0] + "` - Eliminar este producto");
+                            } else {
+                                simpleNotify(event.getSender(), "Error", 
+                                    "❌ **No se pudo agregar el producto al carrito.**");
+                            }
                             
                         } else {
                             System.out.println("❌ No se pudo obtener carrito activo");
@@ -2247,11 +2493,11 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             String precioUnitario = productoAnterior[4]; // precio_unitario
                             
                             // Realizar la actualización
-                            List<String[]> resultado = nCarrito.actualizarCantidad(detalleId, cantidad);
+                        List<String[]> resultado = nCarrito.actualizarCantidad(detalleId, cantidad);
                             
                             if (!resultado.isEmpty()) {
                                 // Crear headers amigables para el cliente
-                                String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción", "Stock Disponible", "Precio Venta"};
+                                String[] detallesHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Precio Unit.", "Subtotal", "Producto", "Descripción"};
                                 
                                 // Crear datos amigables (sin mostrar carrito_id)
                                 List<String[]> resultadoClienteData = new ArrayList<>();
@@ -2263,9 +2509,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                         detalle[4], // precio_unitario → Precio Unit.
                                         detalle[5], // subtotal → Subtotal
                                         detalle[6], // producto_nombre → Producto
-                                        detalle[7], // producto_descripcion → Descripción
-                                        detalle[8], // stock → Stock Disponible
-                                        detalle[9]  // precio_venta → Precio Venta
+                                        detalle[7]  // producto_descripcion → Descripción
+                                        // Quitamos: detalle[8] (stock) y detalle[9] (precio_venta)
                                     });
                                 }
                                 
@@ -2370,11 +2615,11 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         String query = "SELECT id FROM \"user\" WHERE email = ?";
         SqlConnection sqlConnection = new SqlConnection(DBConnection.database, DBConnection.server, DBConnection.port, DBConnection.user, DBConnection.password);
         
-        try (var connection = sqlConnection.connect();
-             var ps = connection.prepareStatement(query)) {
+        try (Connection connection = sqlConnection.connect();
+             PreparedStatement ps = connection.prepareStatement(query)) {
             
             ps.setString(1, email);
-            var rs = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
             
             if (rs.next()) {
                 return rs.getInt("id");

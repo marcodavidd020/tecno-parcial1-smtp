@@ -5,6 +5,9 @@ import data.DDetalleVenta;
 import data.DCarrito;
 import data.DDetalleCarrito;
 import data.DCliente;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,7 +102,7 @@ public class NNotaVenta {
         // 4. Calcular el total
         double total = 0.0;
         for (String[] detalle : detallesCarrito) {
-            total += Double.parseDouble(detalle[4]); // precio_total
+            total += Double.parseDouble(detalle[5]); // subtotal (precio_unitario × cantidad)
         }
         
         // 5. Crear la nota de venta
@@ -116,7 +119,7 @@ public class NNotaVenta {
         for (String[] detalle : detallesCarrito) {
             int productoAlmacenId = Integer.parseInt(detalle[2]);
             int cantidad = Integer.parseInt(detalle[3]);
-            double precioTotal = Double.parseDouble(detalle[4]);
+            double precioTotal = Double.parseDouble(detalle[5]); // subtotal correcto
             
             dDetalleVenta.save(notaVentaId, productoAlmacenId, cantidad, precioTotal);
         }
@@ -195,11 +198,11 @@ public class NNotaVenta {
         String query = "SELECT id FROM \"user\" WHERE email = ?";
         SqlConnection sqlConnection = new SqlConnection(DBConnection.database, DBConnection.server, DBConnection.port, DBConnection.user, DBConnection.password);
         
-        try (var connection = sqlConnection.connect();
-             var ps = connection.prepareStatement(query)) {
+        try (Connection connection = sqlConnection.connect();
+             PreparedStatement ps = connection.prepareStatement(query)) {
             
             ps.setString(1, email);
-            var rs = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
             
             if (rs.next()) {
                 return rs.getInt("id");

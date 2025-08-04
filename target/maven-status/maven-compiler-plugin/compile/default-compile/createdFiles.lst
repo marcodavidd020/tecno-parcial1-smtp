@@ -11,6 +11,7 @@ data/DCarrito.class
 postgresConecction/SqlConnection.class
 data/DTipoPago.class
 negocio/NCliente.class
+com/mycompany/parcial1/tecnoweb/EmailApp.class
 data/DDireccion.class
 librerias/Email.class
 data/DCliente.class
@@ -36,6 +37,7 @@ librerias/analex/TSParams.class
 data/DProducto.class
 postgresConecction/DBConnection.class
 negocio/NDireccion.class
+com/mycompany/parcial1/tecnoweb/run.class
 negocio/NNotaVenta.class
 data/DDetalleCarrito.class
 postgresConecction/PostgresSqlConecction.class
