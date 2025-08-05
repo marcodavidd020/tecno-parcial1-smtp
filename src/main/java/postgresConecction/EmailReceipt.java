@@ -102,6 +102,10 @@ public class EmailReceipt implements Runnable {
             input.readLine();
             output.writeBytes("PASS " + password + "\r\n");//Command.pass(password));
             String message = input.readLine();
+            if (message == null) {
+                System.err.println("⚠️ Error: Respuesta nula del servidor de email. Reintentando conexión...");
+                throw new AuthenticationException("Servidor no respondió");
+            }
             if (message.contains("-ERR")) {
                 throw new AuthenticationException();
             }
@@ -111,6 +115,10 @@ public class EmailReceipt implements Runnable {
     private int getEmailCount() throws IOException {
         output.writeBytes("STAT \r\n");//Command.stat());
         String line = input.readLine();
+        if (line == null) {
+            System.err.println("⚠️ Error: No se pudo obtener estadísticas del servidor de email");
+            return 0;
+        }
         //+OK 14 6410
         String[] data = line.split(" ");
         return Integer.parseInt(data[1]); //14

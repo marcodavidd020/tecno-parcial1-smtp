@@ -102,8 +102,14 @@ public class NNotaVenta {
         // 4. Calcular el total
         double total = 0.0;
         for (String[] detalle : detallesCarrito) {
-            total += Double.parseDouble(detalle[5]); // subtotal (precio_unitario × cantidad)
+            double subtotal = Double.parseDouble(detalle[5]); // subtotal (precio_unitario × cantidad)
+            System.out.println("🔍 DEBUG NOTA VENTA: Producto " + detalle[6] + 
+                " - Cantidad: " + detalle[3] + 
+                " - Precio Unit: " + detalle[4] + 
+                " - Subtotal: " + detalle[5]);
+            total += subtotal;
         }
+        System.out.println("🔍 DEBUG NOTA VENTA: Total calculado: " + total);
         
         // 5. Crear la nota de venta
         String fecha = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
