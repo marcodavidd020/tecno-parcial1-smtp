@@ -2419,16 +2419,33 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     });
                                 }
                                 
-                                // Buscar el detalle del producto recién agregado (último agregado)
-                                String[] ultimoDetalle = detallesCompletos.get(detallesCompletos.size() - 1);
+                                // Obtener el ID del detalle recién agregado desde el resultado
+                                String detalleIdAgregado = resultado.get(0)[0];
+                                System.out.println("🔍 DEBUG: Detalle agregado ID: " + detalleIdAgregado);
+                                
+                                // Buscar el detalle específico que se acaba de agregar por su ID
+                                String[] detalleEncontrado = null;
+                                for (String[] detalle : detallesCompletos) {
+                                    if (detalleIdAgregado.equals(detalle[0])) {
+                                        detalleEncontrado = detalle;
+                                        break;
+                                    }
+                                }
+                                
+                                if (detalleEncontrado == null) {
+                                    simpleNotify(event.getSender(), "Error", 
+                                        "❌ **No se pudo encontrar la información del producto agregado.**");
+                                    return;
+                                }
+                                
                                 String[] detalleAgregado = new String[]{
-                                    ultimoDetalle[0], // id → Detalle ID
-                                    ultimoDetalle[2], // producto_almacen_id → Producto ID  
-                                    ultimoDetalle[3], // cantidad → Cantidad
-                                    ultimoDetalle[4], // precio_unitario → Precio Unit.
-                                    ultimoDetalle[5], // subtotal → Subtotal
-                                    ultimoDetalle[6], // producto_nombre → Producto
-                                    ultimoDetalle[7]  // producto_descripcion → Descripción
+                                    detalleEncontrado[0], // id → Detalle ID
+                                    detalleEncontrado[2], // producto_almacen_id → Producto ID  
+                                    detalleEncontrado[3], // cantidad → Cantidad
+                                    detalleEncontrado[4], // precio_unitario → Precio Unit.
+                                    detalleEncontrado[5], // subtotal → Subtotal
+                                    detalleEncontrado[6], // producto_nombre → Producto
+                                    detalleEncontrado[7]  // producto_descripcion → Descripción
                                 };
                                 
                                 // Mostrar solo el producto agregado
